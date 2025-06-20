@@ -196,5 +196,65 @@ class PdfCpuController extends Controller
         return response()->json(['token' => $token]);
     }
 
+    public function rotate(Request $request)
+    {
+        if (!$request->hasFile('pdf_file')) {
+            return response()->json(['error' => 'No file uploaded'], 400);
+        }
+
+        $angle = $request->input('angle', 90); // default to 90 degrees
+        $pages = $request->input('pages', '1-'); // default to all pages
+
+        $file = $request->file('pdf_file');
+        if (!$file->isValid()) {
+            return response()->json(['error' => 'Invalid file'], 400);
+        }
+
+        $inputDir = storage_path('app/pdf_inputs');
+        $outputDir = storage_path('app/converted');
+        $publicDir = storage_path('app/public/converted');
+
+        foreach ([$inputDir, $outputDir, $publicDir] as $dir) {
+            if (!file_exists($dir)) mkdir($dir, 0777, true);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $filename = time() . '_' . $originalName;
+        $inputPath = $inputDir . '/' . $filename;
+        $file->move($inputDir, $filename);
+
+        $rotatedName = 'rotated_' . time() . '.pdf';
+        $rotatedPath = $outputDir . '/' . $rotatedName;
+
+        $pdfcpuPath = 'C:\pdfcpu\pdfcpu.exe';
+
+        // Construct command
+        $command = "\"$pdfcpuPath\" rotate -pages \"$pages\" \"$angle\" \"$inputPath\" \"$rotatedPath\"";
+        exec($command, $output, $code);
+
+        if ($code !== 0 || !file_exists($rotatedPath)) {
+            return response()->json([
+                'error' => 'Rotation failed',
+                'command' => $command,
+                'output' => $output,
+            ], 500);
+        }
+
+        // Move to public
+        $publicPath = $publicDir . '/' . $rotatedName;
+        rename($rotatedPath, $publicPath);
+        $url = asset('storage/converted/' . $rotatedName);
+        $urls = [$url];
+
+        $token = Str::random(32);
+        DownloadToken::create([
+            'token' => $token,
+            'files' => json_encode($urls),
+            'expires_at' => now()->addMinutes(30),
+        ]);
+
+        return response()->json(['token' => $token]);
+    }
+
 
 }

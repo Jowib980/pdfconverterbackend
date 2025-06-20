@@ -5,6 +5,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\ConversionController;
 use App\Http\Controllers\API\DownloadController;
 use App\Http\Controllers\API\PdfCpuController;
+use App\Http\Controllers\API\GoogleAuthController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -27,3 +28,7 @@ Route::post('/convert/pdf-to-word', [ConversionController::class, 'convertPdfToW
 Route::post('/merge-pdf', [PdfCpuController::class, 'merge']);
 Route::post('/split-pdf', [PdfCpuController::class, 'split']);
 Route::post('/compress-pdf', [PdfCpuController::class, 'compress']);
+Route::post('/rotate-pdf', [PdfCpuController::class, 'rotate']);
+
+
+Route::post('/auth/google-login', [GoogleAuthController::class, 'handleGoogleLogin']);
