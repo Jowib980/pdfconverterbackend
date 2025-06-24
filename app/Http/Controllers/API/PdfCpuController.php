@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Models\DownloadToken;
+use App\Models\ConvertedDocuments;
 
 class PdfCpuController extends Controller
 {
@@ -17,6 +18,7 @@ class PdfCpuController extends Controller
         }
 
         $files = $request->file('pdf_files');
+        $userId = $request->user_id;
         if (count($files) < 2) {
             return response()->json(['error' => 'Upload at least 2 PDF files'], 400);
         }
@@ -59,13 +61,32 @@ class PdfCpuController extends Controller
         $url = asset('storage/converted/' . $mergedName);
         $urls = [$url];
 
+        $convertedDoc = null;
 
-        $token = Str::random(32);
-        DownloadToken::create([
-            'token' => $token,
-            'files' => json_encode($urls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
+        try {
+            $convertedDoc = ConvertedDocuments::create([
+                'user_id' => $userId,
+                'file_type' => 'pdf_files',
+                'convert_into' => 'pdf_files',
+                'original_name' => $file->getClientOriginalName(),
+                'converted_name' => $mergedName,
+                'original_doc' => "storage/{$inputDir}/$name",
+                'converted_pdf' => "storage/converted/$mergedName",
+            ]);
+        } catch (\Exception $ex) {
+            \Log::error("Failed to insert record: " . $ex->getMessage());
+        }
+
+         if ($convertedDoc) {
+            $token = Str::random(32);
+
+            DownloadToken::create([
+                'converted_document_id' => $convertedDoc->id,
+                'token' => $token,
+                'files' => json_encode($urls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+        }
 
         return response()->json(['token' => $token]);
     }
@@ -77,6 +98,7 @@ class PdfCpuController extends Controller
         }
 
         $file = $request->file('pdf_file');
+        $userId = $request->user_id;
         if (!$file->isValid()) {
             return response()->json(['error' => 'Invalid file'], 400);
         }
@@ -113,14 +135,34 @@ class PdfCpuController extends Controller
             $publicPath = $publicDir . '/' . basename($splitFile);
             rename($splitFile, $publicPath);
             $urls[] = asset('storage/converted/' . basename($splitFile));
+
+             $convertedDoc = null;
+
+            try {
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'pdf_files',
+                    'convert_into' => 'pdf_files',
+                    'original_name' => $file->getClientOriginalName(),
+                    'converted_name' => $splitFile,
+                    'original_doc' => "storage/{$inputDir}/$filename",
+                    'converted_pdf' => "storage/converted",
+                ]);
+            } catch (\Exception $ex) {
+                \Log::error("Failed to insert record: " . $ex->getMessage());
+            }
+
         }
 
-        $token = Str::random(32);
-        DownloadToken::create([
-            'token' => $token,
-            'files' => json_encode($urls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
+        if($convertedDoc) {
+            $token = Str::random(32);
+            DownloadToken::create([
+                'converted_document_id' => $convertedDoc->id,
+                'token' => $token,
+                'files' => json_encode($urls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+        }
 
         return response()->json(['token' => $token]);
     }
@@ -139,6 +181,7 @@ class PdfCpuController extends Controller
         }
 
         $file = $request->file('pdf_file');
+        $userId = $request->user_id;
         if (!$file->isValid()) {
             return response()->json(['error' => 'Invalid file'], 400);
         }
@@ -186,12 +229,32 @@ class PdfCpuController extends Controller
         $url = asset('storage/converted/' . $compressedName);
         $urls = [$url];
 
-        $token = Str::random(32);
-        DownloadToken::create([
-            'token' => $token,
-            'files' => json_encode($urls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
+         $convertedDoc = null;
+
+        try {
+            $convertedDoc = ConvertedDocuments::create([
+                'user_id' => $userId,
+                'file_type' => 'pdf_files',
+                'convert_into' => 'pdf_files',
+                'original_name' => $file->getClientOriginalName(),
+                'converted_name' => $compressedName,
+                'original_doc' => "storage/{$inputDir}/$filename",
+                'converted_pdf' => "storage/converted/$compressedName",
+            ]);
+        } catch (\Exception $ex) {
+            \Log::error("Failed to insert record: " . $ex->getMessage());
+        }
+
+
+        if($convertedDoc) {
+            $token = Str::random(32);
+            DownloadToken::create([
+                'converted_document_id' => $convertedDoc->id,
+                'token' => $token,
+                'files' => json_encode($urls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+        }
 
         return response()->json(['token' => $token]);
     }
@@ -206,6 +269,7 @@ class PdfCpuController extends Controller
         $pages = $request->input('pages', '1-'); // default to all pages
 
         $file = $request->file('pdf_file');
+        $userId = $request->user_id;
         if (!$file->isValid()) {
             return response()->json(['error' => 'Invalid file'], 400);
         }

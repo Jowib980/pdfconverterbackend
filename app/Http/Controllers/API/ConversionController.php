@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Exception; 
 use Illuminate\Support\Str;
 use App\Models\DownloadToken;
-use App\Models\ConvertedDocument;
+use App\Models\ConvertedDocuments;
 
 
 class ConversionController extends Controller
@@ -22,6 +22,7 @@ class ConversionController extends Controller
         }
 
         $files = $request->file($fileKey);
+        $userId = $request->user_id;
         if (!is_array($files)) {
             $files = [$files];
         }
@@ -72,6 +73,24 @@ class ConversionController extends Controller
                 rename($convertedPath, $publicPath);
 
                 $urls[] = asset('storage/converted/' . $convertedName);
+
+                $convertedDoc = null;
+
+                try {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => $fileKey,
+                        'convert_into' => $outputExt,
+                        'original_name' => $file->getClientOriginalName(),
+                        'converted_name' => $convertedName,
+                        'original_doc' => "storage/{$inputSubDir}/$uniqueName",
+                        'converted_pdf' => "storage/converted/$convertedName",
+                    ]);
+                } catch (\Exception $ex) {
+                    \Log::error("Failed to insert record: " . $ex->getMessage());
+                }
+
+
             } catch (\Exception $e) {
                 $errors[] = $e->getMessage();
             }
@@ -81,12 +100,17 @@ class ConversionController extends Controller
             return response()->json(['error' => implode("\n", $errors)], 500);
         }
 
-        $token = Str::random(32);
-        DownloadToken::create([
-            'token' => $token,
-            'files' => json_encode($urls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
+
+        if ($convertedDoc) {
+            $token = Str::random(32);
+
+            DownloadToken::create([
+                'converted_document_id' => $convertedDoc->id,
+                'token' => $token,
+                'files' => json_encode($urls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+        }
 
         return response()->json(['token' => $token]);
     }
