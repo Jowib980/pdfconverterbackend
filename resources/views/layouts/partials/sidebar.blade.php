@@ -1,6 +1,6 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4" style="position: fixed;">
     <!-- Brand Logo -->
-    <a href="index3.html" class="brand-link">
+    <a href="/dashboard" class="brand-link">
       <img src="{{ asset('dist/img/AdminLTELogo.png') }}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
       <span class="brand-text font-weight-light">PDFTools</span>
     </a>
@@ -43,6 +43,7 @@
               </p>
             </a>
           </li>
+          @role('admin')
           <li class="nav-item">
             <a href="/users" class="nav-link">
               <i class="nav-icon far fa-user"></i>
@@ -66,6 +67,8 @@
               </li>
             </ul>
           </li>
+          @endrole
+          @role('admin')
           <li class="nav-item">
             <a href="/all-files" class="nav-link">
               <i class="nav-icon far fa-file"></i>
@@ -89,6 +92,17 @@
               </li> -->
             </ul>
           </li>
+          @endrole
+          @role('user')
+          <li class="nav-item">
+            <a href="/all-files" class="nav-link">
+              <i class="nav-icon far fa-file"></i>
+              <p>
+                My Converted Files
+              </p>
+            </a>
+          </li>
+          @endrole
         </ul>
       </nav>
       <!-- /.sidebar-menu -->

@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -29,12 +31,19 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $user->assignRole('user');
+        // $token = $user->createToken('auth_token')->plainTextToken;
+
+        $loginToken = Str::random(60);
+        $user->login_token = $loginToken;
+        $user->login_token_expires_at = now()->addMinutes(30);
+        $user->save();
+
 
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            'access_token' => $loginToken,
             'user' => $user,
+            'role' => $user->getRoleNames()->first(),
         ]);
     }
 
@@ -47,12 +56,18 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // $token = $user->createToken('auth_token')->plainTextToken;
+
+
+        $loginToken = Str::random(60);
+        $user->login_token = $loginToken;
+        $user->login_token_expires_at = now()->addMinutes(30);
+        $user->save();
 
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            'access_token' => $loginToken,
             'user' => $user,
+            'role' => $user->getRoleNames()->first(),
         ]);
     }
 

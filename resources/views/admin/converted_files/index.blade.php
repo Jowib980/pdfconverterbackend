@@ -44,7 +44,8 @@
           <div class="col-12">
             <div class="card p-2">
                <!-- Filter Form -->
-              <form method="GET" action="{{ route('all-files') }}">
+
+              <form method="GET" action=" {{ route('all-files') }}">
                 <div class="row">
                   <div class="col-md-3">
                     <input type="text" name="name" class="form-control" placeholder="Search by User Name" value="{{ request('name') }}">

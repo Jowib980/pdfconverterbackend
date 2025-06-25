@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\ConvertedDocuments;
+use Illuminate\Support\Facades\Auth;
 
 class ConversionController extends Controller
 {
@@ -15,6 +16,12 @@ class ConversionController extends Controller
     {
         $query = ConvertedDocuments::with('user', 'downloadToken');
 
+        // If not admin, limit to own files
+        if (!Auth::user()->hasRole('admin')) {
+            $query->where('user_id', Auth::id());
+        }
+
+        // Admin can filter by user name
         if ($request->filled('name')) {
             $query->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->name . '%');
@@ -23,10 +30,11 @@ class ConversionController extends Controller
 
         if ($request->filled('file_type')) {
             $type = $request->file_type;
-            $query->where('file_type', $type)
-                  ->orWhere('file_type', rtrim($type, 's'));
+            $query->where(function ($q) use ($type) {
+                $q->where('file_type', $type)
+                  ->orWhere('file_type', rtrim($type, 's')); // optional: normalize type
+            });
         }
-
 
         $files = $query->paginate(10)->withQueryString();
 
