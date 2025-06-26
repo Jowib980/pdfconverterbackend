@@ -36,7 +36,7 @@ class ConversionController extends Controller
             });
         }
 
-        $files = $query->paginate(10)->withQueryString();
+        $files = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
         return view('admin.converted_files.index', compact('files'));
     }
@@ -58,6 +58,7 @@ class ConversionController extends Controller
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('ids', []);
+
         if (!empty($ids)) {
             ConvertedDocuments::whereIn('id', $ids)->delete();
             return redirect()->back()->with('message', 'Selected files deleted.');

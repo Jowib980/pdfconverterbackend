@@ -69,21 +69,27 @@
             </div>
           </div>
         </div>
+
+
         <div class="row">
           <div class="col-12">
-            <div class="card">
-              
-              <!-- /.card-header -->
-              <div class="card-body">
-                <form method="POST" action="{{ route('bulk-delete-files') }}">
-                  @csrf
-                  @method('DELETE')
+           <!-- ✅ START form -->
+            <form method="POST" action="{{ route('bulk-delete-files') }}">
+              @csrf
+              @method('DELETE')
 
-                    <div class="col-md-4 mb-2">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row mb-2">
+                    <div class="col-md-6">
                       <button type="submit" class="btn btn-danger" onclick="return confirm('Delete selected files?')">Delete Selected</button>
+                    </div>
+                    <div class="col-md-6 text-right">
+                      <p>Total Files: {{ $files->total() }}</p>
                     </div>
                   </div>
 
+                  <!-- ✅ CHECKBOXES NOW INSIDE FORM -->
                   <table class="table table-bordered table-hover">
                     <thead>
                       <tr>
@@ -97,7 +103,7 @@
                     <tbody>
                       @forelse($files as $file)
                         <tr>
-                          <td><input type="checkbox" name="ids[]" value="{{ $file->id }}" /></td>
+                          <td><input type="checkbox" name="ids[]" value="{{ $file->id }}"></td>
                           <td>{{ $file->user->name }}</td>
                           <td>{{ $file->file_type }}</td>
                           <td>{{ $file->convert_into }}</td>
@@ -119,11 +125,11 @@
                   <div class="mt-3 d-flex justify-content-center">
                     {{ $files->links() }}
                   </div>
-                </form>
-
+                </div>
               </div>
-              <!-- /.card-body -->
-            </div>
+            </form>
+            <!-- ✅ END form -->
+
             <!-- /.card -->
           </div>
           <!-- /.col -->

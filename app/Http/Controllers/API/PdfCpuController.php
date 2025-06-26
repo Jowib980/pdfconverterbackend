@@ -265,7 +265,7 @@ class PdfCpuController extends Controller
             return response()->json(['error' => 'No file uploaded'], 400);
         }
 
-        $angle = $request->input('angle', 90); // default to 90 degrees
+        $angle = $request->input('angle', 0); // default to 0 degrees
         $pages = $request->input('pages', '1-'); // default to all pages
 
         $file = $request->file('pdf_file');
@@ -293,8 +293,12 @@ class PdfCpuController extends Controller
         $pdfcpuPath = 'C:\pdfcpu\pdfcpu.exe';
 
         // Construct command
-        $command = "\"$pdfcpuPath\" rotate -pages \"$pages\" \"$angle\" \"$inputPath\" \"$rotatedPath\"";
+        $command = "\"$pdfcpuPath\" rotate -pages \"$pages\" \"$inputPath\" \"$angle\" \"$rotatedPath\"";
+
         exec($command, $output, $code);
+
+        \Log::info("PDFCPU Command: $command");
+        \Log::info("PDFCPU Output: " . implode("\n", $output));
 
         if ($code !== 0 || !file_exists($rotatedPath)) {
             return response()->json([
@@ -310,12 +314,33 @@ class PdfCpuController extends Controller
         $url = asset('storage/converted/' . $rotatedName);
         $urls = [$url];
 
-        $token = Str::random(32);
-        DownloadToken::create([
-            'token' => $token,
-            'files' => json_encode($urls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
+
+         $convertedDoc = null;
+
+        try {
+            $convertedDoc = ConvertedDocuments::create([
+                'user_id' => $userId,
+                'file_type' => 'pdf_files',
+                'convert_into' => 'pdf_files',
+                'original_name' => $file->getClientOriginalName(),
+                'converted_name' => $rotatedName,
+                'original_doc' => "storage/{$inputDir}/$filename",
+                'converted_pdf' => "storage/converted/$rotatedName",
+            ]);
+        } catch (\Exception $ex) {
+            \Log::error("Failed to insert record: " . $ex->getMessage());
+        }
+
+
+        if($convertedDoc) {
+            $token = Str::random(32);
+            DownloadToken::create([
+                'converted_document_id' => $convertedDoc->id,
+                'token' => $token,
+                'files' => json_encode($urls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+        }
 
         return response()->json(['token' => $token]);
     }

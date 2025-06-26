@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Log the user in using Laravel's session (cookie)
     Auth::login($user);
+    
 
     // Invalidate the token after use
     $user->login_token = null;
