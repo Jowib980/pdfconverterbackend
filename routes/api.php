@@ -32,3 +32,8 @@ Route::post('/rotate-pdf', [PdfCpuController::class, 'rotate']);
 
 
 Route::post('/auth/google-login', [GoogleAuthController::class, 'handleGoogleLogin']);
+
+Route::post('/convert-word', [ConversionController::class, 'convertWord']);
+Route::post('/convert-excel', [ConversionController::class, 'convertExcel']);
+Route::post('/convert-ppt', [ConversionController::class, 'convertPPT']);
+Route::post('/convert-html', [ConversionController::class, 'convertHtml']);

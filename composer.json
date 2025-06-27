@@ -7,11 +7,15 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "google/apiclient": "^2.18",
         "jeroennoten/laravel-adminlte": "*",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.1",
         "laravel/tinker": "^2.10.1",
+        "phpoffice/phppresentation": "^0.9.0",
+        "phpoffice/phpspreadsheet": "^4.4",
+        "phpoffice/phpword": "^1.4",
         "spatie/laravel-permission": "^6.20"
     },
     "require-dev": {
