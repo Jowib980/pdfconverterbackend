@@ -149,55 +149,127 @@ class ConversionController extends Controller
 
     // using php office library
 
+    // public function convertWord(Request $request)
+    // {
+    //     if (!$request->hasFile('file')) {
+    //         return response()->json(['error' => 'No file uploaded'], 400);
+    //     }
+
+    //     $file = $request->file('file');
+    //     $userId = $request->user_id;
+
+    //     if ($file->getClientOriginalExtension() !== 'docx') {
+    //         return response()->json(['error' => 'Only .docx files are supported'], 400);
+    //     }
+
+    //     try {
+    //         $phpWord = WordIOFactory::load($file->getPathname());
+
+    //         ob_start();
+    //         \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML')->save('php://output');
+    //         $htmlContent = ob_get_clean();
+
+    //         $uniqueId = Str::uuid();
+    //         $filename = "converted_{$uniqueId}.pdf";
+    //         $relativePath = "converted/{$filename}";
+    //         $pdfPath = storage_path("app/public/" . $relativePath);
+
+    //         \PDF::loadHTML($htmlContent)->save($pdfPath);
+
+    //         $convertedDoc = ConvertedDocuments::create([
+    //             'user_id' => $userId,
+    //             'file_type' => 'word_files',
+    //             'convert_into' => 'pdf',
+    //             'original_name' => $file->getClientOriginalName(),
+    //             'converted_name' => $filename,
+    //             'original_doc' => $file->store('originals', 'public'),
+    //             'converted_pdf' => $relativePath,
+    //         ]);
+
+    //         $token = Str::random(32);
+    //         $url = asset('storage/' . $relativePath);
+
+    //         DownloadToken::create([
+    //             'converted_document_id' => $convertedDoc->id,
+    //             'token' => $token,
+    //             'files' => json_encode([$url]),
+    //             'expires_at' => now()->addMinutes(30),
+    //         ]);
+
+    //         return response()->json([
+    //             'url' => $url,
+    //             'token' => $token
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
+    //     }
+    // }
+
     public function convertWord(Request $request)
     {
         if (!$request->hasFile('file')) {
-            return response()->json(['error' => 'No file uploaded'], 400);
+            return response()->json(['error' => 'No files uploaded'], 400);
         }
 
-        $file = $request->file('file');
+        $files = $request->file('file');
         $userId = $request->user_id;
 
-        if ($file->getClientOriginalExtension() !== 'docx') {
-            return response()->json(['error' => 'Only .docx files are supported'], 400);
+        if (!is_array($files)) {
+            $files = [$files];
         }
 
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
+
         try {
-            $phpWord = WordIOFactory::load($file->getPathname());
+            foreach ($files as $file) {
+                if ($file->getClientOriginalExtension() !== 'docx') {
+                    continue; // Skip unsupported file types
+                }
 
-            ob_start();
-            \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML')->save('php://output');
-            $htmlContent = ob_get_clean();
+                $phpWord = \PhpOffice\PhpWord\IOFactory::load($file->getPathname());
 
-            $uniqueId = Str::uuid();
-            $filename = "converted_{$uniqueId}.pdf";
-            $relativePath = "converted/{$filename}";
-            $pdfPath = storage_path("app/public/" . $relativePath);
+                ob_start();
+                \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML')->save('php://output');
+                $htmlContent = ob_get_clean();
 
-            \PDF::loadHTML($htmlContent)->save($pdfPath);
+                $uniqueId = \Str::uuid();
+                $filename = "converted_{$uniqueId}.pdf";
+                $relativePath = "converted/{$filename}";
+                $pdfPath = storage_path("app/public/" . $relativePath);
 
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'word_files',
-                'convert_into' => 'pdf',
-                'original_name' => $file->getClientOriginalName(),
-                'converted_name' => $filename,
-                'original_doc' => $file->store('originals', 'public'),
-                'converted_pdf' => $relativePath,
-            ]);
+                \PDF::loadHTML($htmlContent)->save($pdfPath);
 
-            $token = Str::random(32);
-            $url = asset('storage/' . $relativePath);
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'word_files',
+                    'convert_into' => 'pdf',
+                    'original_name' => $file->getClientOriginalName(),
+                    'converted_name' => $filename,
+                    'original_doc' => $file->store('originals', 'public'),
+                    'converted_pdf' => $relativePath,
+                ]);
+
+                $lastConvertedDocId = $convertedDoc->id;
+                $pdfUrls[] = asset('storage/' . $relativePath);
+            }
+
+            if (empty($pdfUrls)) {
+                return response()->json(['error' => 'No valid .docx files found'], 400);
+            }
+
+            $token = \Str::random(32);
 
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
+                'converted_document_id' => $lastConvertedDocId,
                 'token' => $token,
-                'files' => json_encode([$url]),
+                'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
             ]);
 
             return response()->json([
-                'url' => $url,
+                'urls' => $pdfUrls,
                 'token' => $token
             ]);
 
@@ -210,58 +282,75 @@ class ConversionController extends Controller
     public function convertExcel(Request $request)
     {
         if (!$request->hasFile('file')) {
-            return response()->json(['error' => 'No file uploaded'], 400);
+            return response()->json(['error' => 'No files uploaded'], 400);
         }
 
-        $file = $request->file('file');
+        $files = $request->file('file');
         $userId = $request->user_id;
 
-        if (!in_array($file->getClientOriginalExtension(), ['xls', 'xlsx'])) {
-            return response()->json(['error' => 'Only Excel files (.xls, .xlsx) are supported'], 400);
+        if (!is_array($files)) {
+            $files = [$files];
         }
 
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
+
         try {
-            // Load the Excel file
-            $spreadsheet = SpreadsheetIOFactory::load($file->getPathname());
+            foreach ($files as $file) {
+                $extension = strtolower($file->getClientOriginalExtension());
 
-            // Convert to HTML
-            ob_start();
-            $writer = new HtmlWriter($spreadsheet);
-            $writer->save('php://output');
-            $htmlContent = ob_get_clean();
+                if (!in_array($extension, ['xls', 'xlsx'])) {
+                    continue; // Skip unsupported files
+                }
 
-            // Convert HTML to PDF
-            $uniqueId = Str::uuid();
-            $filename = "converted_{$uniqueId}.pdf";
-            $relativePath = "converted/{$filename}";
-            $pdfPath = storage_path("app/public/" . $relativePath);
+                // Load the Excel file
+                $spreadsheet = SpreadsheetIOFactory::load($file->getPathname());
 
-            \PDF::loadHTML($htmlContent)->save($pdfPath);
+                // Convert to HTML
+                ob_start();
+                $writer = new HtmlWriter($spreadsheet);
+                $writer->save('php://output');
+                $htmlContent = ob_get_clean();
 
-            // Save record in DB
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'excel_files',
-                'convert_into' => 'pdf',
-                'original_name' => $file->getClientOriginalName(),
-                'converted_name' => $filename,
-                'original_doc' => $file->store('originals', 'public'),
-                'converted_pdf' => $relativePath,
-            ]);
+                // Convert HTML to PDF
+                $uniqueId = Str::uuid();
+                $filename = "converted_{$uniqueId}.pdf";
+                $relativePath = "converted/{$filename}";
+                $pdfPath = storage_path("app/public/" . $relativePath);
+
+                \PDF::loadHTML($htmlContent)->save($pdfPath);
+
+                // Save to DB
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'excel_files',
+                    'convert_into' => 'pdf',
+                    'original_name' => $file->getClientOriginalName(),
+                    'converted_name' => $filename,
+                    'original_doc' => $file->store('originals', 'public'),
+                    'converted_pdf' => $relativePath,
+                ]);
+
+                $lastConvertedDocId = $convertedDoc->id;
+                $pdfUrls[] = asset('storage/' . $relativePath);
+            }
+
+            if (empty($pdfUrls)) {
+                return response()->json(['error' => 'No valid Excel files (.xls, .xlsx) found'], 400);
+            }
 
             // Generate token
             $token = Str::random(32);
-            $url = asset('storage/' . $relativePath);
 
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
+                'converted_document_id' => $lastConvertedDocId,
                 'token' => $token,
-                'files' => json_encode([$url]),
+                'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
             ]);
 
             return response()->json([
-                'url' => $url,
+                'urls' => $pdfUrls,
                 'token' => $token
             ]);
 
@@ -334,14 +423,26 @@ class ConversionController extends Controller
             return response()->json(['error' => 'No file uploaded'], 400);
         }
 
-        $file = $request->file('file');
+        $files = $request->file('file');
         $userId = $request->user_id;
 
-        if (!in_array($file->getClientOriginalExtension(), ['html', 'htm'])) {
-            return response()->json(['error' => 'Only HTML files are supported'], 400);
+        if (!is_array($files)) {
+            $files = [$files];
         }
 
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
+
+
         try {
+
+            foreach ($files as $file) {
+                $extension = strtolower($file->getClientOriginalExtension());
+
+            if (!in_array($extension, ['htm', 'html'])) {
+                continue;
+            }
+
             $htmlContent = file_get_contents($file->getPathname());
 
             $uniqueId = Str::uuid();
@@ -361,18 +462,27 @@ class ConversionController extends Controller
                 'converted_pdf' => $relativePath,
             ]);
 
-            $token = Str::random(32);
-            $url = asset('storage/' . $relativePath);
 
+                $lastConvertedDocId = $convertedDoc->id;
+                $pdfUrls[] = asset('storage/' . $relativePath);
+            }
+
+            if (empty($pdfUrls)) {
+                return response()->json(['error' => 'No valid .docx files found'], 400);
+            }
+
+
+            $token = Str::random(32);
+            
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
+                'converted_document_id' => $lastConvertedDocId,
                 'token' => $token,
-                'files' => json_encode([$url]),
+                'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
             ]);
 
             return response()->json([
-                'url' => $url,
+                'urls' => $pdfUrls,
                 'token' => $token
             ]);
 
