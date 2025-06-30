@@ -14,7 +14,11 @@ class ConversionController extends Controller
 
     public function index(Request $request)
     {
-        $query = ConvertedDocuments::with('user', 'downloadToken');
+        $query = ConvertedDocuments::with(['user', 'downloadToken' => function ($q) {
+            $q->whereNotNull('token');
+        }])->whereHas('downloadToken', function ($q) {
+            $q->whereNotNull('token');
+        });
 
         // If not admin, limit to own files
         if (!Auth::user()->hasRole('admin')) {
@@ -32,7 +36,7 @@ class ConversionController extends Controller
             $type = $request->file_type;
             $query->where(function ($q) use ($type) {
                 $q->where('file_type', $type)
-                  ->orWhere('file_type', rtrim($type, 's')); // optional: normalize type
+                  ->orWhere('file_type', rtrim($type, 's'));
             });
         }
 

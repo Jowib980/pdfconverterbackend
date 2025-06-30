@@ -37,3 +37,6 @@ Route::post('/convert-word', [ConversionController::class, 'convertWord']);
 Route::post('/convert-excel', [ConversionController::class, 'convertExcel']);
 Route::post('/convert-ppt', [ConversionController::class, 'convertPPT']);
 Route::post('/convert-html', [ConversionController::class, 'convertHtml']);
+Route::post('/convert-jpg', [ConversionController:: class, 'convertJPG']);
+Route::post('/merge', [ConversionController:: class, 'mergePdf']);
+Route::post('/split', [ConversionController:: class, 'splitPdf']);

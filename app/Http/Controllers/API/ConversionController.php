@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
 
 use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
 use PhpOffice\PhpPresentation\IOFactory as PresentationIOFactory;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class ConversionController extends Controller
@@ -146,65 +146,6 @@ class ConversionController extends Controller
         return $this->handleLibreOfficeConversion($request, 'html_file', 'html_files', 'pdf');
     }
 
-
-    // using php office library
-
-    // public function convertWord(Request $request)
-    // {
-    //     if (!$request->hasFile('file')) {
-    //         return response()->json(['error' => 'No file uploaded'], 400);
-    //     }
-
-    //     $file = $request->file('file');
-    //     $userId = $request->user_id;
-
-    //     if ($file->getClientOriginalExtension() !== 'docx') {
-    //         return response()->json(['error' => 'Only .docx files are supported'], 400);
-    //     }
-
-    //     try {
-    //         $phpWord = WordIOFactory::load($file->getPathname());
-
-    //         ob_start();
-    //         \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML')->save('php://output');
-    //         $htmlContent = ob_get_clean();
-
-    //         $uniqueId = Str::uuid();
-    //         $filename = "converted_{$uniqueId}.pdf";
-    //         $relativePath = "converted/{$filename}";
-    //         $pdfPath = storage_path("app/public/" . $relativePath);
-
-    //         \PDF::loadHTML($htmlContent)->save($pdfPath);
-
-    //         $convertedDoc = ConvertedDocuments::create([
-    //             'user_id' => $userId,
-    //             'file_type' => 'word_files',
-    //             'convert_into' => 'pdf',
-    //             'original_name' => $file->getClientOriginalName(),
-    //             'converted_name' => $filename,
-    //             'original_doc' => $file->store('originals', 'public'),
-    //             'converted_pdf' => $relativePath,
-    //         ]);
-
-    //         $token = Str::random(32);
-    //         $url = asset('storage/' . $relativePath);
-
-    //         DownloadToken::create([
-    //             'converted_document_id' => $convertedDoc->id,
-    //             'token' => $token,
-    //             'files' => json_encode([$url]),
-    //             'expires_at' => now()->addMinutes(30),
-    //         ]);
-
-    //         return response()->json([
-    //             'url' => $url,
-    //             'token' => $token
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
-    //     }
-    // }
 
     public function convertWord(Request $request)
     {
@@ -491,5 +432,115 @@ class ConversionController extends Controller
         }
     }
 
-   
+    public function convertJPG(Request $request)
+    {
+        $request->validate([
+            'file.*' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'orientation' => 'in:portrait,landscape',
+            'margin' => 'in:0,4,6',
+            'merge' => 'in:0,1',
+        ]);
+
+        $orientation = $request->input('orientation', 'portrait');
+        $margin = intval($request->input('margin', 0));
+        $merge = $request->input('merge') == '1';
+
+        $files = $request->file('file');
+        $userId = $request->input('user_id');
+        $token = Str::random(32);
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
+
+        try {
+            if ($merge) {
+                $html = '';
+                $originalNames = [];
+
+                foreach ($files as $file) {
+                    $originalNames[] = $file->getClientOriginalName();
+                    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+                    $html .= "<div style='page-break-after: always; margin: {$margin}mm'>
+                                <img src='data:image/jpeg;base64,{$imageData}' style='width:100%; height:auto;' />
+                              </div>";
+                }
+
+                $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
+                $filename = 'pdf_' . time() . '.pdf';
+                $relativePath = 'converted/' . $filename;
+                $pdfPath = storage_path("app/public/" . $relativePath);
+
+                // Ensure directory exists
+                if (!file_exists(dirname($pdfPath))) {
+                    mkdir(dirname($pdfPath), 0755, true);
+                }
+
+                $pdf->save($pdfPath); // ✅ Save directly using DomPDF just like convertHtml()
+                $pdfUrls[] = asset("storage/{$relativePath}");
+
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'image_files',
+                    'convert_into' => 'pdf',
+                    'original_name' => implode(', ', $originalNames),
+                    'converted_name' => $filename,
+                    'original_doc' => '', // optional: zip if needed
+                    'converted_pdf' => $relativePath,
+                ]);
+
+                $lastConvertedDocId = $convertedDoc->id;
+            } else {
+                foreach ($files as $file) {
+                    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+                    $html = "<div style='margin: {$margin}mm'>
+                              <img src='data:image/jpeg;base64,{$imageData}' style='width:100%; height:auto;' />
+                             </div>";
+
+                    $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
+                    $filename = 'pdf_' . time() . '_' . Str::random(5) . '.pdf';
+                    $relativePath = 'converted/' . $filename;
+                    $pdfPath = storage_path("app/public/" . $relativePath);
+
+                    // Ensure directory exists
+                    if (!file_exists(dirname($pdfPath))) {
+                        mkdir(dirname($pdfPath), 0755, true);
+                    }
+
+                    $pdf->save($pdfPath);
+                    $pdfUrls[] = asset("storage/{$relativePath}");
+
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'image_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => $file->getClientOriginalName(),
+                        'converted_name' => $filename,
+                        'original_doc' => $file->store('originals', 'public'),
+                        'converted_pdf' => $relativePath,
+                    ]);
+
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
+            }
+
+            if (empty($pdfUrls)) {
+                return response()->json(['error' => 'No valid image files found'], 400);
+            }
+
+            DownloadToken::create([
+                'converted_document_id' => $lastConvertedDocId,
+                'token' => $token,
+                'files' => json_encode($pdfUrls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+
+            return response()->json([
+                'urls' => $pdfUrls,
+                'token' => $token
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+
 }
