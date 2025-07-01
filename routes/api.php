@@ -40,3 +40,5 @@ Route::post('/convert-html', [ConversionController::class, 'convertHtml']);
 Route::post('/convert-jpg', [ConversionController:: class, 'convertJPG']);
 Route::post('/merge', [ConversionController:: class, 'mergePdf']);
 Route::post('/split', [ConversionController:: class, 'splitPdf']);
+Route::post('/rotate', [ConversionController:: class, 'rotatePdf']);
+Route::post('/watermark', [ConversionController:: class, 'watermarkPdf']);
