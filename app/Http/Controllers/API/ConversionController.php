@@ -501,9 +501,15 @@ class ConversionController extends Controller
                 foreach ($files as $file) {
                     $originalNames[] = $file->getClientOriginalName();
                     $imageData = base64_encode(file_get_contents($file->getRealPath()));
-                    $html .= "<div style='page-break-after: always; margin: {$margin}mm'>
-                                <img src='data:image/jpeg;base64,{$imageData}' style='width:100%; height:auto;' />
+                    $rotationStyle = '';
+                    if ($orientation === 'landscape') {
+                        $rotationStyle = 'transform: rotate(90deg); transform-origin: center; display: block; margin: auto;';
+                    }
+
+                    $html .= "<div style='page-break-after: always; margin: {$margin}mm; text-align: center;'>
+                                <img src='data:image/jpeg;base64,{$imageData}' style='max-width:100%; height:auto; {$rotationStyle}' />
                               </div>";
+
                 }
 
                 $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
@@ -533,9 +539,15 @@ class ConversionController extends Controller
             } else {
                 foreach ($files as $file) {
                     $imageData = base64_encode(file_get_contents($file->getRealPath()));
-                    $html = "<div style='margin: {$margin}mm'>
-                              <img src='data:image/jpeg;base64,{$imageData}' style='width:100%; height:auto;' />
-                             </div>";
+                    $rotationStyle = '';
+                    if ($orientation === 'landscape') {
+                        $rotationStyle = 'transform: rotate(90deg); transform-origin: center; display: block; margin: auto;';
+                    }
+
+                    $html .= "<div style='page-break-after: always; margin: {$margin}mm; text-align: center;'>
+                                <img src='data:image/jpeg;base64,{$imageData}' style='max-width:100%; height:auto; {$rotationStyle}' />
+                              </div>";
+
 
                     $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
                     $filename = 'pdf_' . time() . '_' . Str::random(5) . '.pdf';

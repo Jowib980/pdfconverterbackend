@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "fpdf/fpdf": "^1.86",
         "google/apiclient": "^2.18",
         "jeroennoten/laravel-adminlte": "*",
         "laravel/framework": "^12.0",
@@ -16,6 +17,7 @@
         "phpoffice/phppresentation": "^0.9.0",
         "phpoffice/phpspreadsheet": "^4.4",
         "phpoffice/phpword": "^1.4",
+        "setasign/fpdi": "^2.6",
         "spatie/laravel-permission": "^6.20"
     },
     "require-dev": {
