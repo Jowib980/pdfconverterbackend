@@ -10,6 +10,7 @@ use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Http\Controllers\API\PaymentController;
 
 Route::get('/', function () {
     return Auth::check() ? redirect('/dashboard') : redirect()->route('login');
@@ -42,6 +43,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/delete-file/{id}', [ConversionController::class, 'destroy'])->name('delete-file');
     Route::delete('/bulk-delete-files', [ConversionController::class, 'bulkDelete'])->name('bulk-delete-files');
    
+    Route::get('/all-payments', [PaymentController::class, 'index'])->name('all-payments');
+    Route::get('/view-payment/{id}', [PaymentController::class, 'view'])->name('view-payment');
+    Route::delete('/delete-payment/{id}', [PaymentController::class, 'destroy'])->name('delete-payment');
+    Route::delete('/bulk-delete-payment', [PaymentController::class, 'bulkDelete'])->name('bulk-delete-payment');
+
     Route::resource('roles', RoleController::class);
 
 

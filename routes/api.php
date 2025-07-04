@@ -6,6 +6,8 @@ use App\Http\Controllers\API\ConversionController;
 use App\Http\Controllers\API\DownloadController;
 use App\Http\Controllers\API\PdfCpuController;
 use App\Http\Controllers\API\GoogleAuthController;
+use App\Http\Controllers\API\ContactController;
+use App\Http\Controllers\API\PaymentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -42,3 +44,7 @@ Route::post('/merge', [ConversionController:: class, 'mergePdf']);
 Route::post('/split', [ConversionController:: class, 'splitPdf']);
 Route::post('/rotate', [ConversionController:: class, 'rotatePdf']);
 Route::post('/watermark', [ConversionController:: class, 'watermarkPdf']);
+
+Route::post('/sent-message', [ContactController:: class, 'create']);
+
+Route::post('/save-payment', [PaymentController:: class, 'store']);

@@ -103,6 +103,14 @@
             </a>
           </li>
           @endrole
+          @role('admin')
+            <li class="nav-item">
+              <a href="/all-payments" class="nav-link">
+                <i class="fa fa-credit-card nav-icon"></i>
+                <p>Payments</p>
+              </a>
+            </li>
+          @endrole
         </ul>
       </nav>
       <!-- /.sidebar-menu -->
