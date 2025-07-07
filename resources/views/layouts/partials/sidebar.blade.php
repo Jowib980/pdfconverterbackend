@@ -110,6 +110,12 @@
                 <p>Payments</p>
               </a>
             </li>
+            <li class="nav-item">
+              <a href="/all-contacts" class="nav-link">
+                <i class="fa fa-address-book nav-icon"></i>
+                <p>Contacts</p>
+              </a>
+            </li>
           @endrole
         </ul>
       </nav>

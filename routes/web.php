@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\RoleController;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Http\Controllers\API\PaymentController;
+use App\Http\Controllers\API\ContactController;
 
 Route::get('/', function () {
     return Auth::check() ? redirect('/dashboard') : redirect()->route('login');
@@ -47,6 +48,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/view-payment/{id}', [PaymentController::class, 'view'])->name('view-payment');
     Route::delete('/delete-payment/{id}', [PaymentController::class, 'destroy'])->name('delete-payment');
     Route::delete('/bulk-delete-payment', [PaymentController::class, 'bulkDelete'])->name('bulk-delete-payment');
+
+    Route::get('/all-contacts', [ContactController::class, 'index'])->name('all-contacts');
+    Route::delete('/delete-contact/{id}', [ContactController::class, 'destroy'])->name('delete-contact');
+    Route::delete('/bulk-delete-contact', [ContactController::class, 'bulkDelete'])->name('bulk-delete-contact');
 
     Route::resource('roles', RoleController::class);
 
