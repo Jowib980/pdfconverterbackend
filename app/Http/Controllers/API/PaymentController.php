@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\PaymentDetails;
-    use Illuminate\Support\Carbon;
+use Illuminate\Support\Carbon;
+use Razorpay\Api\Api;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
@@ -73,5 +75,28 @@ class PaymentController extends Controller
         return redirect()->back()->with('error', 'No payment rocord selected.');
     }
 
+
+    public function createRazorpayOrder(Request $request)
+    {
+        $api = new \Razorpay\Api\Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+
+        $order = $api->order->create([
+            'receipt' => Str::uuid(),
+            'amount' => $request->amount * 100, // INR in paise
+            'currency' => 'INR'
+        ]);
+
+        return response()->json(['order_id' => $order->id]);
+    }
+
+    public function currentPlan(Request $request, $id) {
+        $plan = PaymentDetails::where('user_id', $id)->latest()->first();
+
+        if (!$plan) {
+            return response()->json(['message' => 'No plan found'], 404);
+        }
+
+        return response()->json($plan); // success response
+    }
 
 }
