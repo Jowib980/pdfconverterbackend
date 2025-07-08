@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\DownloadToken;
 use Illuminate\Support\Facades\Response;
 use ZipArchive;
+use Illuminate\Support\Carbon;
 
 class DownloadController extends Controller
 {
@@ -30,50 +31,53 @@ class DownloadController extends Controller
     }
 
     public function handleDownload($token)
-{
-    $record = DownloadToken::where('token', $token)->first();
-    if (!$record) abort(404);
+    {
+        $record = DownloadToken::where('token', $token)->first();
 
-    $files = json_decode($record->files, true);
-
-    if (count($files) === 1) {
-        $file = basename($files[0]); // Extract only filename
-        $path = storage_path("app/public/converted/{$file}");
-        return response()->file($path, [
-            'Content-Type' => 'application/pdf',
-            'Access-Control-Allow-Origin' => '*',
-            'Content-Disposition' => 'attachment; filename="' . $file . '"'
-        ]);
-    }
-
-    // Multiple files – create zip
-    $zip = new \ZipArchive();
-    $zipFile = storage_path("app/temp/download_{$token}.zip");
-
-    if (!file_exists(dirname($zipFile))) {
-        mkdir(dirname($zipFile), 0777, true);
-    }
-
-    if ($zip->open($zipFile, \ZipArchive::CREATE) === true) {
-        
-        foreach ($files as $fileUrl) {
-            $fileName = basename($fileUrl);
-            $filePath = storage_path("app/public/converted/" . $fileName);
-
-            if (file_exists($filePath)) {
-                $zip->addFile($filePath, $fileName);
-            }
+        if (!$record || Carbon::now()->greaterThan(Carbon::parse($record->expires_at))) {
+            abort(403, 'This download link has expired.');
         }
-        $zip->close();
+
+        $files = json_decode($record->files, true);
+
+        if (count($files) === 1) {
+            $file = basename($files[0]); // Extract only filename
+            $path = storage_path("app/public/converted/{$file}");
+            return response()->file($path, [
+                'Content-Type' => 'application/pdf',
+                'Access-Control-Allow-Origin' => '*',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"'
+            ]);
+        }
+
+        // Multiple files – create zip
+        $zip = new \ZipArchive();
+        $zipFile = storage_path("app/temp/download_{$token}.zip");
+
+        if (!file_exists(dirname($zipFile))) {
+            mkdir(dirname($zipFile), 0777, true);
+        }
+
+        if ($zip->open($zipFile, \ZipArchive::CREATE) === true) {
+            
+            foreach ($files as $fileUrl) {
+                $fileName = basename($fileUrl);
+                $filePath = storage_path("app/public/converted/" . $fileName);
+
+                if (file_exists($filePath)) {
+                    $zip->addFile($filePath, $fileName);
+                }
+            }
+            $zip->close();
+        }
+
+        return response()->download($zipFile, "converted_pdfs_{$token}.zip", [
+            'Content-Type' => 'application/zip',
+            'Access-Control-Allow-Origin' => '*',
+            'Content-Disposition' => 'attachment; filename="converted_pdfs_' . $token . '.zip"'
+        ])->deleteFileAfterSend(true);
+
     }
-
-    return response()->download($zipFile, "converted_pdfs_{$token}.zip", [
-        'Content-Type' => 'application/zip',
-        'Access-Control-Allow-Origin' => '*',
-        'Content-Disposition' => 'attachment; filename="converted_pdfs_' . $token . '.zip"'
-    ])->deleteFileAfterSend(true);
-
-}
 
 
 }
