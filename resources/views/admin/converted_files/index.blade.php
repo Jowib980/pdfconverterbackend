@@ -74,6 +74,7 @@
         <div class="row">
           <div class="col-12">
            <!-- ✅ START form -->
+            <!-- ✅ Bulk delete form START -->
             <form method="POST" action="{{ route('bulk-delete-files') }}">
               @csrf
               @method('DELETE')
@@ -89,7 +90,7 @@
                     </div>
                   </div>
 
-                  <!-- ✅ CHECKBOXES NOW INSIDE FORM -->
+                  <!-- ✅ Single delete buttons are NOT inside this form -->
                   <table class="table table-bordered table-hover">
                     <thead>
                       <tr>
@@ -108,16 +109,17 @@
                           <td>{{ $file->file_type }}</td>
                           <td>{{ $file->convert_into }}</td>
                           <td>
+                            <!-- ✅ Single delete form is standalone -->
                             <form method="POST" action="{{ route('delete-file', $file->id) }}" style="display: inline-block;">
                               @csrf
                               @method('DELETE')
-                              <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                              <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this file?')"><i class="fas fa-trash"></i></button>
                             </form>
                             <a href="{{ url('api/download-file', $file->downloadToken?->token) }}" class="btn btn-primary btn-sm"><i class="fa fa-download"></i></a>
                           </td>
                         </tr>
                       @empty
-                        <tr><td colspan="5">No data found</td></tr>
+                        <tr><td colspan="6">No data found</td></tr>
                       @endforelse
                     </tbody>
                   </table>
@@ -128,6 +130,8 @@
                 </div>
               </div>
             </form>
+            <!-- ✅ Bulk delete form END -->
+
             <!-- ✅ END form -->
 
             <!-- /.card -->

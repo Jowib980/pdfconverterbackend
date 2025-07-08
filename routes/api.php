@@ -50,3 +50,5 @@ Route::post('/sent-message', [ContactController:: class, 'create']);
 Route::post('/save-payment', [PaymentController:: class, 'store']);
 Route::post('/create-razorpay-order', [PaymentController::class, 'createRazorpayOrder']);
 Route::get('/current-plan/{id}', [PaymentController::class, 'currentPlan']);
+
+Route::get('/gateways', [PaymentController::class, 'allGateway']);

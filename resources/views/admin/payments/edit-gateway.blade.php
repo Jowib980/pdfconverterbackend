@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit User')
+@section('title', 'Edit Payment Gateway')
 
 @section('content')
 
@@ -15,7 +15,7 @@
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
               <li class="breadcrumb-item"><a href="#">Home</a></li>
-              <li class="breadcrumb-item active">Edit User</li>
+              <li class="breadcrumb-item active">Edit Payment Gateway</li>
             </ol>
           </div>
         </div>
@@ -46,29 +46,52 @@
           <div class="col-md-12">
             <!-- jquery validation -->
             <div class="card card-primary">
-              <div class="card-header">
-                <h3 class="card-title">Edit User</h3>
-              </div>
+              
               <!-- /.card-header -->
               <!-- form start -->
-              <form id="quickForm" action="{{ route('update-user', $data->id) }}" method="POST">
+              <form id="quickForm" action="{{ route('update-gateway', $payment->id) }}" method="POST">
               	@csrf
                 @method('PUT')
                 <div class="card-body">
                 	<div class="form-group">
-	                    <label for="exampleInputPassword1">Name</label>
-	                    <input type="name" name="name" class="form-control" id="exampleInputPassword1" placeholder="Name" required value="{{ $data->name }}">
-                  	</div>
+	                   <label for="exampleInputPassword1">Name</label>
+	                   <input type="name" name="name" class="form-control" id="exampleInputPassword1" placeholder="Name" required value="{{ $payment->name }}">
+                  </div>
+
+                  <div class="form-group">
+                    <label>Status</label><br>
+                    <div class="form-check form-check-inline">
+                      <input 
+                        class="form-check-input" 
+                        type="radio" 
+                        name="is_enabled" 
+                        id="enabled" 
+                        value="1" 
+                        {{ $payment->is_enabled ? 'checked' : '' }}>
+                      <label class="form-check-label" for="enabled">Enable</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input 
+                        class="form-check-input" 
+                        type="radio" 
+                        name="is_enabled" 
+                        id="disabled" 
+                        value="0" 
+                        {{ !$payment->is_enabled ? 'checked' : '' }}>
+                      <label class="form-check-label" for="disabled">Disable</label>
+                    </div>
+                  </div>
+
 
                   	<div class="form-group">
-	                    <label for="exampleInputEmail1">Email address</label>
-	                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" placeholder="Enter email" required value="{{ $data->email }}">
-                  	</div>
-
-                  	<div class="form-group">
-	                    <label for="exampleInputPassword1">Password</label>
-	                    <input type="password" name="password" class="form-control" id="exampleInputPassword1" placeholder="Password" required>
+	                    <label for="exampleInputPassword1">Client Id</label>
+	                    <input type="text" name="password" class="form-control" id="exampleInputPassword1" placeholder="Client Id" >
 	                </div>
+
+                  <div class="form-group">
+                      <label for="exampleInputPassword1">Client Secret</label>
+                      <input type="text" name="password" class="form-control" id="exampleInputPassword1" placeholder="Client Secret" >
+                  </div>
                   
                 </div>
                 <!-- /.card-body -->

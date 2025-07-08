@@ -49,6 +49,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/delete-payment/{id}', [PaymentController::class, 'destroy'])->name('delete-payment');
     Route::delete('/bulk-delete-payment', [PaymentController::class, 'bulkDelete'])->name('bulk-delete-payment');
 
+    Route::get('/all-gateways', [PaymentController::class, 'allGateway'])->name('all-gateways');
+    Route::get('/edit-gateway/{id}', [PaymentController::class, 'editGateway'])->name('edit-gateway');
+    Route::put('/update-gateway/{id}', [PaymentController::class, 'updateGateway'])->name('update-gateway');
+    Route::delete('/delete-gateway/{id}', [PaymentController::class, 'destroyGateway'])->name('delete-gateway');
+    Route::delete('/bulk-delete-gateway', [PaymentController::class, 'bulkDeleteGateway'])->name('bulk-delete-gateway');
+
     Route::get('/all-contacts', [ContactController::class, 'index'])->name('all-contacts');
     Route::delete('/delete-contact/{id}', [ContactController::class, 'destroy'])->name('delete-contact');
     Route::delete('/bulk-delete-contact', [ContactController::class, 'bulkDelete'])->name('bulk-delete-contact');

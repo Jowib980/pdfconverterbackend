@@ -59,25 +59,39 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255',
-            'password' => 'nullable|string|min:6',
-        ]);
-
-        $user = User::findOrFail($id);
-
-        $user->name = $request->name;
-        $user->email = $request->email;
-
-        if ($request->filled('password')) {
-            $user->password = bcrypt($request->password);
+        try {
+            $validatedData = $request->validate([
+                'name'     => 'required|string|max:255',
+                'email'    => 'required|email|max:255',
+                'password' => 'nullable|string|min:6',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
         }
 
-        $user->save();
+        try {
+            $user = User::findOrFail($id);
 
-        return redirect()->route('users')->with('message', 'User updated successfully!');
+            $user->name = $validatedData['name'];
+            $user->email = $validatedData['email'];
+
+            if (!empty($validatedData['password'])) {
+                $user->password = bcrypt($validatedData['password']);
+            }
+
+            $user->save();
+
+            return redirect()->route('users')->with('success', 'User updated successfully!');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()->with('error', 'User not found.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'An error occurred while updating the user.');
+        }
     }
+
+
 
     public function view(Request $request, $id) {
         $user = User::find($id);

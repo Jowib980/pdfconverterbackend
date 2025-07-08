@@ -104,12 +104,30 @@
           </li>
           @endrole
           @role('admin')
-            <li class="nav-item">
-              <a href="/all-payments" class="nav-link">
-                <i class="fa fa-credit-card nav-icon"></i>
-                <p>Payments</p>
-              </a>
-            </li>
+          <li class="nav-item">
+            <a href="/all-payments" class="nav-link">
+              <i class="fa fa-credit-card nav-icon"></i>
+              <p>
+                Payments
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="/all-payments" class="nav-link">
+                  <i class="fa fa-users nav-icon"></i>
+                  <p>All Payments</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="/all-gateways" class="nav-link">
+                  <i class="fa fa-plus nav-icon"></i>
+                  <p>Payment Gateway</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+           
             <li class="nav-item">
               <a href="/all-contacts" class="nav-link">
                 <i class="fa fa-address-book nav-icon"></i>
