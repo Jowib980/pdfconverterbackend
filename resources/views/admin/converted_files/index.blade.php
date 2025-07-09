@@ -104,9 +104,9 @@
                       @forelse($files as $file)
                         <tr>
                           <td><input type="checkbox" name="ids[]" value="{{ $file->id }}"></td>
-                          <td>{{ $file->user->name }}</td>
-                          <td>{{ $file->file_type }}</td>
-                          <td>{{ $file->convert_into }}</td>
+                          <td>{{ $file->user->name ?? '' }}</td>
+                          <td>{{ $file->file_type ?? '' }}</td>
+                          <td>{{ $file->convert_into ?? '' }}</td>
                           <td>
                             <!-- ✅ Single delete form is standalone -->
                             <form method="POST" action="{{ route('delete-file', $file->id) }}" style="display: inline-block;">
