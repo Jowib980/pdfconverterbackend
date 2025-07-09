@@ -11,6 +11,8 @@ use App\Http\Controllers\API\PaymentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -52,3 +54,11 @@ Route::post('/create-razorpay-order', [PaymentController::class, 'createRazorpay
 Route::get('/current-plan/{id}', [PaymentController::class, 'currentPlan']);
 
 Route::get('/gateways', [PaymentController::class, 'allGateway']);
+
+Route::get('/config', function () {
+    return response()->json([
+        'googleClientId' => env('GOOGLE_CLIENT_ID'),
+        'paypalClientId' => env('PAYPAL_CLIENT_ID'),
+        'razorpayKey' => env('RAZORPAY_KEY'),
+    ]);
+});
