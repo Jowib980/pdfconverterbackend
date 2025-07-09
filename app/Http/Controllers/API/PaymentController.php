@@ -28,6 +28,29 @@ class PaymentController extends Controller
         return view('admin.payments.payment-gateway', compact('gateways'));
     }
 
+    public function create() {
+        return view('admin.payments.create-gateway');
+    }
+
+    public function storeGateway(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'is_enabled' => 'required|boolean',
+            'client_id' => 'nullable|string',
+            'client_secret' => 'nullable|string',
+        ]);
+
+        PaymentGateway::create([
+            'name' => $request->input('name'),
+            'is_enabled' => $request->input('is_enabled'),
+            'client_id' => $request->input('client_id') ?? '',
+            'client_secret' => $request->input('client_secret') ?? '',
+        ]);
+
+        return redirect()->route('all-gateways')->with('success', 'Payment Gateway created successfully!');
+    }
+
 
      public function editGateway(Request $request, $id)
     {

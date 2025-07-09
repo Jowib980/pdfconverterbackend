@@ -115,13 +115,13 @@
             <ul class="nav nav-treeview">
               <li class="nav-item">
                 <a href="/all-payments" class="nav-link">
-                  <i class="fa fa-users nav-icon"></i>
+                  <i class="fa fa-credit-card nav-icon"></i>
                   <p>All Payments</p>
                 </a>
               </li>
               <li class="nav-item">
                 <a href="/all-gateways" class="nav-link">
-                  <i class="fa fa-plus nav-icon"></i>
+                  <i class="fas fa-money-check-alt"></i>
                   <p>Payment Gateway</p>
                 </a>
               </li>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Payment Gateway')
+@section('title', 'Create Payment Gateway')
 
 @section('content')
 
@@ -15,7 +15,7 @@
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
               <li class="breadcrumb-item"><a href="#">Home</a></li>
-              <li class="breadcrumb-item active">Edit Payment Gateway</li>
+              <li class="breadcrumb-item active">Create Payment Gateway</li>
             </ol>
           </div>
         </div>
@@ -25,9 +25,9 @@
      <section class="content-header">
       <div class="container-fluid">
         <div class=" mb-2">
-          @if(session('message'))
+          @if(session('success'))
             <div class="alert alert-success">
-              {{ session('message') }}
+              {{ session('success') }}
             </div>
           @elseif(session('error'))
             <div class="alert alert-warning">
@@ -37,6 +37,17 @@
         </div>
       </div>
     </section>
+
+    @if ($errors->any())
+  <div class="alert alert-danger">
+    <ul>
+      @foreach ($errors->all() as $error)
+        <li>{{ $error }}</li>
+      @endforeach
+    </ul>
+  </div>
+@endif
+
 
     <!-- Main content -->
     <section class="content">
@@ -49,13 +60,12 @@
               
               <!-- /.card-header -->
               <!-- form start -->
-              <form id="quickForm" action="{{ route('update-gateway', $payment->id) }}" method="POST">
+              <form id="quickForm" action="{{ route('create-gateway') }}" method="POST">
               	@csrf
-                @method('PUT')
                 <div class="card-body">
                 	<div class="form-group">
 	                   <label for="exampleInputPassword1">Name</label>
-	                   <input type="name" name="name" class="form-control" id="exampleInputPassword1" placeholder="Name" required value="{{ $payment->name }}">
+	                   <input type="name" name="name" class="form-control" id="exampleInputPassword1" placeholder="Name" required>
                   </div>
 
                   <div class="form-group">
@@ -67,7 +77,8 @@
                         name="is_enabled" 
                         id="enabled" 
                         value="1" 
-                        {{ $payment->is_enabled ? 'checked' : '' }}>
+                        checked
+                      >
                       <label class="form-check-label" for="enabled">Enable</label>
                     </div>
                     <div class="form-check form-check-inline">
@@ -77,7 +88,7 @@
                         name="is_enabled" 
                         id="disabled" 
                         value="0" 
-                        {{ !$payment->is_enabled ? 'checked' : '' }}>
+                      >
                       <label class="form-check-label" for="disabled">Disable</label>
                     </div>
                   </div>
@@ -85,18 +96,18 @@
 
                   	<div class="form-group">
 	                    <label for="exampleInputPassword1">Client Id</label>
-	                    <input type="text" name="client_id" class="form-control" id="exampleInputPassword1" placeholder="Client Id" value={{ $payment->client_id }} >
+	                    <input type="text" name="client_id" class="form-control" id="exampleInputPassword1" placeholder="Client Id" >
 	                </div>
 
                   <div class="form-group">
                       <label for="exampleInputPassword1">Client Secret</label>
-                      <input type="text" name="client_secret" class="form-control" id="exampleInputPassword1" placeholder="Client Secret" value={{ $payment->client_secret }} >
+                      <input type="text" name="client_secret" class="form-control" id="exampleInputPassword1" placeholder="Client Secret" >
                   </div>
                   
                 </div>
                 <!-- /.card-body -->
                 <div class="card-footer">
-                  <button type="submit" class="btn btn-primary">Update</button>
+                  <button type="submit" class="btn btn-primary">Create</button>
                 </div>
               </form>
             </div>
