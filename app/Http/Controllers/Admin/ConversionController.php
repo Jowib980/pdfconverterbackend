@@ -14,9 +14,7 @@ class ConversionController extends Controller
 
     public function index(Request $request)
     {
-        $query = ConvertedDocuments::with(['user' => function ($q) {
-            $q->whereNotNull('token');
-        }]);
+        $query = ConvertedDocuments::with(['user']);
 
         // If not admin, limit to own files
         if (!Auth::user()->hasRole('admin')) {
