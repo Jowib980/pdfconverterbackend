@@ -14,11 +14,9 @@ class ConversionController extends Controller
 
     public function index(Request $request)
     {
-        $query = ConvertedDocuments::with(['user', 'downloadToken' => function ($q) {
+        $query = ConvertedDocuments::with(['user' => function ($q) {
             $q->whereNotNull('token');
-        }])->whereHas('downloadToken', function ($q) {
-            $q->whereNotNull('token');
-        });
+        }]);
 
         // If not admin, limit to own files
         if (!Auth::user()->hasRole('admin')) {

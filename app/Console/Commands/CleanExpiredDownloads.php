@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\DownloadToken;
+use Illuminate\Support\Facades\Storage;
 
 class CleanExpiredDownloads extends Command
 {

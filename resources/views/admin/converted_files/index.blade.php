@@ -114,7 +114,7 @@
                               @method('DELETE')
                               <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this file?')"><i class="fas fa-trash"></i></button>
                             </form>
-                            <a href="{{ url('api/download-file', $file->downloadToken?->token) }}" class="btn btn-primary btn-sm"><i class="fa fa-download"></i></a>
+                            <!-- <a href="{{ url('api/download-file', $file->downloadToken?->token) }}" class="btn btn-primary btn-sm"><i class="fa fa-download"></i></a> -->
                           </td>
                         </tr>
                       @empty
