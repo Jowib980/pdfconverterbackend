@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PaymentDetails extends Model
 {
     //
-
-    protected $fillable = [
+     protected $fillable = [
         'user_id',
         'payer_email',
         'payer_id',
@@ -23,5 +22,4 @@ class PaymentDetails extends Model
         'raw_response',
         'gateway'
     ];
-
 }

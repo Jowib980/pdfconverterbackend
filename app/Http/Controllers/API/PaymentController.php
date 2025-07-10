@@ -171,20 +171,37 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        if($request->input('plan_type') === 'Free') {
+            $validated = $request->validate([
             'user_id' => 'nullable|integer',
-            'payer_email' => 'required|email',
+            'payer_email' => 'nullable|email',
             'payer_id' => 'nullable|string',
             'payer_name' => 'nullable|string',
             'plan_type' => 'required|string',
             'plan_amount' => 'required|numeric',
-            'transaction_id' => 'required|string',
-            'transaction_status' => 'required|string',
-            'payment_date' => 'required|string',
-            'gateway' => 'required|in:paypal,razorpay',
-            'currency' => 'required|string',
+            'transaction_id' => 'nullable|string',
+            'transaction_status' => 'nullable|string',
+            'payment_date' => 'nullable|string',
+            'gateway' => 'nullable|in:paypal,razorpay',
+            'currency' => 'nullable|string',
             'raw_response' => 'nullable|string',
         ]);
+        } else {
+            $validated = $request->validate([
+                'user_id' => 'nullable|integer',
+                'payer_email' => 'required|email',
+                'payer_id' => 'nullable|string',
+                'payer_name' => 'nullable|string',
+                'plan_type' => 'required|string',
+                'plan_amount' => 'required|numeric',
+                'transaction_id' => 'required|string',
+                'transaction_status' => 'required|string',
+                'payment_date' => 'required|string',
+                'gateway' => 'required|in:paypal,razorpay',
+                'currency' => 'required|string',
+                'raw_response' => 'nullable|string',
+            ]);
+        }
 
         $validated['payment_date'] = Carbon::parse($validated['payment_date'])->format('Y-m-d H:i:s');
 

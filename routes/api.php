@@ -12,7 +12,7 @@ use App\Http\Controllers\API\PaymentController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
-
+Route::get('/current-user', [AuthController::class, 'currentUser']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

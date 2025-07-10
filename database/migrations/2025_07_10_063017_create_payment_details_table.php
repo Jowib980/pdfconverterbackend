@@ -14,21 +14,20 @@ return new class extends Migration
         Schema::create('payment_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('payer_email');
-            $table->string('payer_id');
-            $table->string('payer_name');
-            $table->string('plan_type');
-            $table->string('plan_amount');
-            $table->string('transaction_id');
-            $table->string('transaction_status');
-            $table->date('payment_date');
-            $table->string('gateway');
-            $table->string('currency');
-            $table->text('raw_response');
+            $table->string('payer_email')->nullable();
+            $table->string('payer_id')->nullable();
+            $table->string('payer_name')->nullable();
+            $table->string('plan_type')->nullable();;
+            $table->string('plan_amount')->nullable();;
+            $table->string('transaction_id')->nullable();;
+            $table->string('transaction_status')->nullable();;
+            $table->date('payment_date')->nullable();;
+            $table->string('gateway')->nullable();;
+            $table->string('currency')->nullable();;
+            $table->text('raw_response')->nullable();;
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.

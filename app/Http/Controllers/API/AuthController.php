@@ -11,6 +11,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
 use App\Mail\SendOtpMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -117,6 +118,41 @@ class AuthController extends Controller
         ]);
     }
 
+    public function currentUser(Request $request)
+    {
+        $authorization = $request->header('Authorization');
+
+        if (!$authorization || !str_starts_with($authorization, 'Bearer ')) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $token = str_replace('Bearer ', '', $authorization);
+
+        $user = \App\Models\User::where('login_token', $token)
+            ->where('login_token_expires_at', '>', now())
+            ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Invalid or expired token'], 401);
+        }
+
+        // Manually set the authenticated user if you want to use Auth::user()
+        auth()->setUser($user);
+
+        // Load related data
+        $user->load([
+            'convertedDocuments' => function ($query) {
+                $query->select('id', 'user_id', 'file_type', 'convert_into', 'original_name', 'converted_name', 'created_at');
+            },
+            'paymentDetails' => function ($query) {
+                $query->select('id', 'user_id', 'payer_email', 'plan_type', 'plan_amount', 'transaction_id', 'transaction_status', 'payment_date', 'gateway');
+            }
+        ]);
+
+        return response()->json([
+            'user' => $user
+        ]);
+    }
 
 
 }

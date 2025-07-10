@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\ConvertedDocuments;
+use App\Models\PaymentDetails;
 
 class User extends Authenticatable
 {
@@ -49,4 +51,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function convertedDocuments()
+    {
+        return $this->hasMany(\App\Models\ConvertedDocuments::class);
+    }
+
+    public function paymentDetails()
+    {
+        return $this->hasMany(\App\Models\PaymentDetails::class);
+    }
+
 }
