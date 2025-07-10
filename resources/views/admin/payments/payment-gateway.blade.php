@@ -64,9 +64,7 @@
                       <div class="col-md-6">
                         <button type="submit" class="btn btn-danger" onclick="return confirm('Delete selected payment gateway?')">Delete Selected</button>
                       </div>
-                      <div class="col-md-6 text-right">
-                        <p>Total Files: {{ $gateways->total() }}</p>
-                      </div>
+                      
                     </div>
 
                     <table class="table table-bordered table-hover">
@@ -109,9 +107,7 @@
                       </tbody>
                     </table>
 
-                    <div class="mt-3 d-flex justify-content-center">
-                      {{ $gateways->links() }}
-                    </div>
+                    
                   </div>
                 </div>
               </form>

@@ -12,21 +12,75 @@ use App\Models\PaymentGateway;
 
 class PaymentController extends Controller
 {
-    //
-
-    public function allGateway(Request $request)
-    {
+    
+    public function allGateway(Request $request) {
         $gateways = PaymentGateway::orderByDesc('created_at')->paginate(10);
 
-        if ($request->expectsJson() || $request->is('api/*')) {
+        $envCredentials = [
+            'paypal' => [
+                'client_id' => env('PAYPAL_CLIENT_ID'),
+                'client_secret' => env('PAYPAL_SECRET_ID'),
+            ],
+            'razorpay' => [
+                'client_id' => env('RAZORPAY_KEY'),
+                'client_secret' => env('RAZORPAY_SECRET'),
+            ],
+            'google' => [
+                'client_id' => env('GOOGLE_CLIENT_ID'),
+                'client_secret' => null,
+            ],
+        ];
+
+        $updatedGateways = $gateways->getCollection()->map(function ($gateway) use ($envCredentials) {
+            $key = strtolower($gateway->name);
+            if(isset($envCredentials[$key])) {
+                if(empty($gateway->client_id)) {
+                    $gateway->client_id = $envCredentials[$key]['client_id'];
+                }
+                if(empty($gateway->client_secret)) {
+                    $gateway->client_secret = $envCredentials[$key]['client_secret'];
+                }
+                $gateway->source = 'database+env';
+            } else {
+                $gateway->source = 'database';
+            }
+            return $gateway;
+        });
+
+        $existingNames = $updatedGateways->pluck('name')->map(fn($n) => strtolower($n))->toArray();
+
+        $fallbackGateways = collect($envCredentials)
+            ->filter(fn($_, $name) => !in_array($name, $existingNames)) // ❗ should be NOT in DB
+            ->map(function($creds, $name) {
+                $gateway = new \App\Models\PaymentGateway();
+                $gateway->name = ucfirst($name);
+                $gateway->client_id = $creds['client_id'];
+                $gateway->client_secret = $creds['client_secret'];
+                $gateway->is_enabled = false;
+                $gateway->source = 'env';
+                return $gateway;
+            });
+
+
+        $combinedGateways = $updatedGateways->merge($fallbackGateways->values());
+
+        if($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'status' => 'success',
-                'data' => $gateways
+                'data' => $combinedGateways,
+                'from' => $gateways->firstItem(),
+                'to' => $gateways->lastItem(),
+                'total' => $gateways->total(),
             ]);
         }
 
-        return view('admin.payments.payment-gateway', compact('gateways'));
+        return view('admin.payments.payment-gateway', [
+            'gateways' => $updatedGateways,
+            'fallbackGateways' => $fallbackGateways,
+        ]);
+
     }
+
 
     public function create() {
         return view('admin.payments.create-gateway');

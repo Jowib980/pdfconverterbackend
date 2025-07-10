@@ -208,21 +208,13 @@ class ConversionController extends Controller
         try {
             foreach ($files as $file) {
                 if ($file->getClientOriginalExtension() !== 'docx') {
-                    continue; // Skip unsupported file types
+                    continue;
                 }
-
-                // $phpWord = \PhpOffice\PhpWord\IOFactory::load($file->getPathname());
-
-                // ob_start();
-                // \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML')->save('php://output');
-                // $htmlContent = ob_get_clean();
 
                 $uniqueId = \Str::uuid();
                 $filename = "converted_{$uniqueId}.pdf";
                 $relativePath = "converted/{$filename}";
                 $pdfPath = storage_path("app/public/" . $relativePath);
-
-                // \PDF::loadHTML($htmlContent)->save($pdfPath);
 
                 \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
                 $phpWord = \PhpOffice\PhpWord\IOFactory::load($file->getPathname());
