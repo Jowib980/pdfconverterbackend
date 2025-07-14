@@ -145,7 +145,7 @@ class AuthController extends Controller
                 $query->select('id', 'user_id', 'file_type', 'convert_into', 'original_name', 'converted_name', 'created_at');
             },
             'paymentDetails' => function ($query) {
-                $query->select('id', 'user_id', 'payer_email', 'plan_type', 'plan_amount', 'transaction_id', 'transaction_status', 'payment_date', 'gateway');
+                $query->select('id', 'user_id', 'payer_email', 'plan_type', 'plan_amount', 'transaction_id', 'transaction_status', 'payment_date', 'gateway')->latest()->limit(1);
             }
         ]);
 

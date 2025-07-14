@@ -11,12 +11,15 @@ use App\Models\DownloadToken;
 use App\Models\ConvertedDocuments;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use PhpOffice\PhpSpreadsheet\IOFactory as SpreadsheetIOFactory;
-
 use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
 use PhpOffice\PhpPresentation\IOFactory as PresentationIOFactory;
 use Barryvdh\DomPDF\Facade\Pdf;
 use setasign\Fpdi\Fpdi;
 use App\PDF\PdfWithAlpha;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use DomPDF\DomPDF;
+use DomPDF\Options;
 
 
 class PdfWithRotation extends Fpdi
@@ -196,7 +199,6 @@ class ConversionController extends Controller
         }
 
         $files = $request->file('file');
-        $userId = $request->user_id;
 
         if (!is_array($files)) {
             $files = [$files];
@@ -243,18 +245,21 @@ class ConversionController extends Controller
                     ])
                     ->save($pdfPath);
 
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
 
-                $convertedDoc = ConvertedDocuments::create([
-                    'user_id' => $userId,
-                    'file_type' => 'word_files',
-                    'convert_into' => 'pdf',
-                    'original_name' => $file->getClientOriginalName(),
-                    'converted_name' => $filename,
-                    'original_doc' => $file->store('originals', 'public'),
-                    'converted_pdf' => $relativePath,
-                ]);
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'word_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => $file->getClientOriginalName(),
+                        'converted_name' => $filename,
+                        'original_doc' => $file->store('originals', 'public'),
+                        'converted_pdf' => $relativePath,
+                    ]);
 
-                $lastConvertedDocId = $convertedDoc->id;
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
                 $pdfUrls[] = asset('storage/' . $relativePath);
             }
 
@@ -265,7 +270,7 @@ class ConversionController extends Controller
             $token = \Str::random(32);
 
             DownloadToken::create([
-                'converted_document_id' => $lastConvertedDocId,
+                'converted_document_id' => $lastConvertedDocId ?? null,
                 'token' => $token,
                 'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
@@ -289,7 +294,6 @@ class ConversionController extends Controller
         }
 
         $files = $request->file('file');
-        $userId = $request->user_id;
 
         if (!is_array($files)) {
             $files = [$files];
@@ -357,18 +361,22 @@ class ConversionController extends Controller
 
                 \PDF::loadHTML($htmlContent)->save($pdfPath);
 
-                // Save to DB
-                $convertedDoc = ConvertedDocuments::create([
-                    'user_id' => $userId,
-                    'file_type' => 'excel_files',
-                    'convert_into' => 'pdf',
-                    'original_name' => $file->getClientOriginalName(),
-                    'converted_name' => $filename,
-                    'original_doc' => $file->store('originals', 'public'),
-                    'converted_pdf' => $relativePath,
-                ]);
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
 
-                $lastConvertedDocId = $convertedDoc->id;
+                if (!is_null($userId)) {
+                    // Save to DB
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'excel_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => $file->getClientOriginalName(),
+                        'converted_name' => $filename,
+                        'original_doc' => $file->store('originals', 'public'),
+                        'converted_pdf' => $relativePath,
+                    ]);
+
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
                 $pdfUrls[] = asset('storage/' . $relativePath);
             }
 
@@ -380,7 +388,7 @@ class ConversionController extends Controller
             $token = Str::random(32);
 
             DownloadToken::create([
-                'converted_document_id' => $lastConvertedDocId,
+                'converted_document_id' => $lastConvertedDocId ?? null,
                 'token' => $token,
                 'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
@@ -454,65 +462,206 @@ class ConversionController extends Controller
         }
     }
 
+    // public function convertHtml(Request $request)
+    // {
+    //     if (!$request->hasFile('file')) {
+    //         return response()->json(['error' => 'No file uploaded'], 400);
+    //     }
+
+    //     $files = $request->file('file');
+    //     $userId = $request->user_id;
+
+    //     if (!is_array($files)) {
+    //         $files = [$files];
+    //     }
+
+    //     $pdfUrls = [];
+    //     $lastConvertedDocId = null;
+
+
+    //     try {
+
+    //         foreach ($files as $file) {
+    //             $extension = strtolower($file->getClientOriginalExtension());
+
+    //         if (!in_array($extension, ['htm', 'html'])) {
+    //             continue;
+    //         }
+
+    //         $htmlContent = file_get_contents($file->getPathname());
+
+    //         $uniqueId = Str::uuid();
+    //         $filename = "converted_{$uniqueId}.pdf";
+    //         $relativePath = "converted/{$filename}";
+    //         $pdfPath = storage_path("app/public/" . $relativePath);
+
+    //         \PDF::loadHTML($htmlContent)->save($pdfPath);
+
+    //         $convertedDoc = ConvertedDocuments::create([
+    //             'user_id' => $userId,
+    //             'file_type' => 'html_files',
+    //             'convert_into' => 'pdf',
+    //             'original_name' => $file->getClientOriginalName(),
+    //             'converted_name' => $filename,
+    //             'original_doc' => $file->store('originals', 'public'),
+    //             'converted_pdf' => $relativePath,
+    //         ]);
+
+
+    //             $lastConvertedDocId = $convertedDoc->id;
+    //             $pdfUrls[] = asset('storage/' . $relativePath);
+    //         }
+
+    //         if (empty($pdfUrls)) {
+    //             return response()->json(['error' => 'No valid .docx files found'], 400);
+    //         }
+
+
+    //         $token = Str::random(32);
+            
+    //         DownloadToken::create([
+    //             'converted_document_id' => $lastConvertedDocId,
+    //             'token' => $token,
+    //             'files' => json_encode($pdfUrls),
+    //             'expires_at' => now()->addMinutes(30),
+    //         ]);
+
+    //         return response()->json([
+    //             'urls' => $pdfUrls,
+    //             'token' => $token
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
+    //     }
+    // }
+
+
+
     public function convertHtml(Request $request)
     {
-        if (!$request->hasFile('file')) {
-            return response()->json(['error' => 'No file uploaded'], 400);
-        }
-
-        $files = $request->file('file');
-        $userId = $request->user_id;
-
-        if (!is_array($files)) {
-            $files = [$files];
-        }
-
         $pdfUrls = [];
         $lastConvertedDocId = null;
 
-
         try {
+            // Case 1: File Upload
+            if ($request->hasFile('file')) {
+                $files = $request->file('file');
 
-            foreach ($files as $file) {
-                $extension = strtolower($file->getClientOriginalExtension());
+                if (!is_array($files)) {
+                    $files = [$files];
+                }
 
-            if (!in_array($extension, ['htm', 'html'])) {
-                continue;
+                foreach ($files as $file) {
+                    $extension = strtolower($file->getClientOriginalExtension());
+
+                    if (!in_array($extension, ['htm', 'html'])) {
+                        continue;
+                    }
+
+                    $htmlContent = file_get_contents($file->getPathname());
+
+                    $uniqueId = Str::uuid();
+                    $filename = "converted_{$uniqueId}.pdf";
+                    $relativePath = "converted/{$filename}";
+                    $pdfPath = storage_path("app/public/" . $relativePath);
+
+                    \PDF::loadHTML($htmlContent)->save($pdfPath);
+
+                    $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+                    if (!is_null($userId)) {
+                        $convertedDoc = ConvertedDocuments::create([
+                            'user_id' => $userId,
+                            'file_type' => 'html_files',
+                            'convert_into' => 'pdf',
+                            'original_name' => $file->getClientOriginalName(),
+                            'converted_name' => $filename,
+                            'original_doc' => $file->store('originals', 'public'),
+                            'converted_pdf' => $relativePath,
+                        ]);
+
+                        $lastConvertedDocId = $convertedDoc->id;
+                    }
+                    $pdfUrls[] = asset('storage/' . $relativePath);
+                }
             }
+            // Case 2: HTML URL Provided
+            elseif ($request->filled('html_url')) {
+                $htmlUrl = $request->html_url;
 
-            $htmlContent = file_get_contents($file->getPathname());
+                if (!filter_var($htmlUrl, FILTER_VALIDATE_URL)) {
+                    return response()->json(['error' => 'Invalid URL'], 400);
+                }
 
-            $uniqueId = Str::uuid();
-            $filename = "converted_{$uniqueId}.pdf";
-            $relativePath = "converted/{$filename}";
-            $pdfPath = storage_path("app/public/" . $relativePath);
+                $response = Http::get($htmlUrl);
 
-            \PDF::loadHTML($htmlContent)->save($pdfPath);
+                if (!$response->successful()) {
+                    return response()->json(['error' => 'Failed to fetch HTML from URL'], 400);
+                }
 
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'html_files',
-                'convert_into' => 'pdf',
-                'original_name' => $file->getClientOriginalName(),
-                'converted_name' => $filename,
-                'original_doc' => $file->store('originals', 'public'),
-                'converted_pdf' => $relativePath,
-            ]);
+                $htmlContent = $response->body();
+                $originalName = basename(parse_url($htmlUrl, PHP_URL_PATH)) ?: 'html_url.html';
+
+                $uniqueId = Str::uuid();
+                $filename = "converted_{$uniqueId}.pdf";
+                $relativePath = "converted/{$filename}";
+                $pdfPath = storage_path("app/public/" . $relativePath);
+
+                // Get user PDF preferences
+                $orientation = $request->input('orientation', 'portrait');
+                $pageSize = $request->input('page_size', 'A4');
+                $margin = strtolower($request->input('margin', 'default'));
+
+                // Margin presets
+                $marginOptions = [
+                    'default' => ['top' => 10, 'right' => 10, 'bottom' => 10, 'left' => 10],
+                    'small' => ['top' => 5, 'right' => 5, 'bottom' => 5, 'left' => 5],
+                    'none' => ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0],
+                ];
+                $chosenMargin = $marginOptions[$margin] ?? $marginOptions['default'];
+
+                // Generate the PDF with options
+                \PDF::loadHTML($htmlContent)
+                    ->setPaper($pageSize, $orientation)
+                    ->setOptions([
+                        'margin_top'    => $chosenMargin['top'],
+                        'margin_right'  => $chosenMargin['right'],
+                        'margin_bottom' => $chosenMargin['bottom'],
+                        'margin_left'   => $chosenMargin['left'],
+                    ])
+                ->save($pdfPath);
 
 
-                $lastConvertedDocId = $convertedDoc->id;
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'html_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => $originalName,
+                        'converted_name' => $filename,
+                        'original_doc' => null, // No file uploaded
+                        'converted_pdf' => $relativePath,
+                    ]);
+
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
                 $pdfUrls[] = asset('storage/' . $relativePath);
+            } else {
+                return response()->json(['error' => 'No file or URL provided'], 400);
             }
 
             if (empty($pdfUrls)) {
-                return response()->json(['error' => 'No valid .docx files found'], 400);
+                return response()->json(['error' => 'No valid HTML content to convert'], 400);
             }
 
-
+            // Generate access token for download
             $token = Str::random(32);
-            
+
             DownloadToken::create([
-                'converted_document_id' => $lastConvertedDocId,
+                'converted_document_id' => $lastConvertedDocId ?? null,
                 'token' => $token,
                 'files' => json_encode($pdfUrls),
                 'expires_at' => now()->addMinutes(30),
@@ -520,125 +669,138 @@ class ConversionController extends Controller
 
             return response()->json([
                 'urls' => $pdfUrls,
-                'token' => $token
+                'token' => $token,
             ]);
-
         } catch (\Exception $e) {
             return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
         }
     }
-public function convertJPG(Request $request)
-{
-    $request->validate([
-        'file.*' => 'required|image|mimes:jpeg,png,jpg|max:5120',
-        'orientation' => 'in:portrait,landscape',
-        'margin' => 'in:0,4,6',
-        'merge' => 'in:0,1',
-        'mergePage' => 'in:0,1', // added validation
-    ]);
-
-    $orientation = $request->input('orientation', 'portrait');
-    $margin = intval($request->input('margin', 0));
-    $merge = $request->input('merge') == '1';
-    $mergePage = $request->input('mergePage') == '1';
-
-    $files = $request->file('file');
-    $userId = $request->input('user_id');
-    $token = Str::random(32);
-    $pdfUrls = [];
-    $lastConvertedDocId = null;
-
-    try {
-        if ($merge) {
-            $originalNames = [];
-            $html = "<style>body { margin: {$margin}mm; }</style>";
-
-            if ($mergePage) {
-                // ➕ All images on ONE page
-                $html = "
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset='utf-8'>
-    <style>
-      @page {
-        size: A4 " . $orientation . ";
-        margin: {$margin}mm;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-      }
-      .img-row {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
-        page-break-inside: avoid;
-      }
-      .img-row img {
-        width: 180px;
-        height: auto;
-        object-fit: contain;
-      }
-    </style>
-  </head>
-  <body>
-    <div class='img-row'>
-";
-foreach ($files as $file) {
-    $originalNames[] = $file->getClientOriginalName();
-    $imageData = base64_encode(file_get_contents($file->getRealPath()));
-    $html .= "<img src='data:image/jpeg;base64,{$imageData}' />";
-}
-$html .= "
-    </div>
-  </body>
-</html>";
 
 
-            } else {
-                // ➕ Each image on its own page
+    public function convertJPG(Request $request)
+    {
+        $request->validate([
+            'file.*' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'orientation' => 'in:portrait,landscape',
+            'margin' => 'in:0,4,6',
+            'merge' => 'in:0,1',
+            'mergePage' => 'in:0,1', // added validation
+        ]);
+
+        $orientation = $request->input('orientation', 'portrait');
+        \Log::error("Orientation: " . $orientation);
+        $margin = intval($request->input('margin', 0));
+        $merge = $request->input('merge') == '1';
+        $mergePage = $request->input('mergePage') == '1';
+
+        $files = $request->file('file');
+        $token = Str::random(32);
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
+
+        try {
+            if ($merge) {
+                $originalNames = [];
+                $html = "<style>body { margin: {$margin}mm; }</style>";
+
+                if ($mergePage) {
+                    // ➕ All images on ONE page
+                    $html = "
+                        <!DOCTYPE html>
+                        <html>
+                          <head>
+                            <meta charset='utf-8'>
+                            <style>
+                              @page {
+                                size: A4 " . $orientation . ";
+                                margin: {$margin}mm;
+                              }
+                              body {
+                                margin: 0;
+                                padding: 0;
+                                font-family: sans-serif;
+                              }
+                              .img-row {
+                                display: flex;
+                                flex-wrap: wrap;
+                                justify-content: center;
+                                gap: 10px;
+                                page-break-inside: avoid;
+                              }
+                              .img-row img {
+                                width: 180px;
+                                height: auto;
+                                object-fit: contain;
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            <div class='img-row'>
+                        ";
                 foreach ($files as $file) {
                     $originalNames[] = $file->getClientOriginalName();
                     $imageData = base64_encode(file_get_contents($file->getRealPath()));
-
                     $rotationStyle = '';
-                    if ($orientation === 'landscape') {
-                        $rotationStyle = 'transform: rotate(90deg); transform-origin: center;';
-                    }
+                        if ($orientation === 'landscape') {
 
-                    $html .= "<div style='page-break-after: always; text-align: center; margin: {$margin}mm;'>
-                                <img src='data:image/jpeg;base64,{$imageData}' style='max-width:100%; height:auto; {$rotationStyle}' />
-                              </div>";
+                            $rotationStyle = 'transform: rotate(90deg); transform-origin: center;';
+
+                        }
+                    $html .= "<img src='data:image/jpeg;base64,{$imageData}' style='max-width:100%; margin:{$margin}; height:auto; {$rotationStyle}'  />";
                 }
-            }
+                $html .= "
+                    </div>
+                  </body>
+                </html>";
 
-            $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
-            $filename = 'pdf_' . time() . '.pdf';
-            $relativePath = 'converted/' . $filename;
-            $pdfPath = storage_path("app/public/" . $relativePath);
 
-            if (!file_exists(dirname($pdfPath))) {
-                mkdir(dirname($pdfPath), 0755, true);
-            }
+                } else {
+                    // ➕ Each image on its own page
+                    foreach ($files as $file) {
+                        $originalNames[] = $file->getClientOriginalName();
+                        $imageData = base64_encode(file_get_contents($file->getRealPath()));
 
-            $pdf->save($pdfPath);
-            $pdfUrls[] = asset("storage/{$relativePath}");
+                        $rotationStyle = '';
+                        if ($orientation === 'landscape') {
 
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'image_files',
-                'convert_into' => 'pdf',
-                'original_name' => implode(', ', $originalNames),
-                'converted_name' => $filename,
-                'original_doc' => '', // could zip if needed
-                'converted_pdf' => $relativePath,
-            ]);
+                            $rotationStyle = 'transform: rotate(90deg); transform-origin: center;';
 
-            $lastConvertedDocId = $convertedDoc->id;
-        } else {
+                        }
+
+                        $html .= "<div style='page-break-after: always; text-align: center; margin: {$margin}mm;'>
+                                    <img src='data:image/jpeg;base64,{$imageData}' style='max-width:100%; margin:{$margin}; height:auto; {$rotationStyle}' />
+                                  </div>";
+                    }
+                }
+
+                $pdf = Pdf::loadHTML($html)->setPaper('a4', $orientation);
+                $filename = 'pdf_' . time() . '.pdf';
+                $relativePath = 'converted/' . $filename;
+                $pdfPath = storage_path("app/public/" . $relativePath);
+
+                if (!file_exists(dirname($pdfPath))) {
+                    mkdir(dirname($pdfPath), 0755, true);
+                }
+
+                $pdf->save($pdfPath);
+                $pdfUrls[] = asset("storage/{$relativePath}");
+
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'image_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => implode(', ', $originalNames),
+                        'converted_name' => $filename,
+                        'original_doc' => '', // could zip if needed
+                        'converted_pdf' => $relativePath,
+                    ]);
+
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
+            } else {
             // ➕ Separate PDF file for each image
             foreach ($files as $file) {
                 $html = '';
@@ -665,40 +827,44 @@ $html .= "
                 $pdf->save($pdfPath);
                 $pdfUrls[] = asset("storage/{$relativePath}");
 
-                $convertedDoc = ConvertedDocuments::create([
-                    'user_id' => $userId,
-                    'file_type' => 'image_files',
-                    'convert_into' => 'pdf',
-                    'original_name' => $file->getClientOriginalName(),
-                    'converted_name' => $filename,
-                    'original_doc' => $file->store('originals', 'public'),
-                    'converted_pdf' => $relativePath,
-                ]);
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
 
-                $lastConvertedDocId = $convertedDoc->id;
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'image_files',
+                        'convert_into' => 'pdf',
+                        'original_name' => $file->getClientOriginalName(),
+                        'converted_name' => $filename,
+                        'original_doc' => $file->store('originals', 'public'),
+                        'converted_pdf' => $relativePath,
+                    ]);
+
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
             }
         }
 
-        if (empty($pdfUrls)) {
-            return response()->json(['error' => 'No valid image files found'], 400);
+            if (empty($pdfUrls)) {
+                return response()->json(['error' => 'No valid image files found'], 400);
+            }
+
+            DownloadToken::create([
+                'converted_document_id' => $lastConvertedDocId ?? null,
+                'token' => $token,
+                'files' => json_encode($pdfUrls),
+                'expires_at' => now()->addMinutes(30),
+            ]);
+
+            return response()->json([
+                'urls' => $pdfUrls,
+                'token' => $token
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
         }
-
-        DownloadToken::create([
-            'converted_document_id' => $lastConvertedDocId,
-            'token' => $token,
-            'files' => json_encode($pdfUrls),
-            'expires_at' => now()->addMinutes(30),
-        ]);
-
-        return response()->json([
-            'urls' => $pdfUrls,
-            'token' => $token
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
     }
-}
 
     public function mergePdf(Request $request)
     {
@@ -707,7 +873,6 @@ $html .= "
         }
 
         $files = $request->file('pdf_files');
-        $userId = $request->input('user_id');
 
         if (count($files) < 2) {
             return response()->json(['error' => 'Upload at least 2 PDF files'], 400);
@@ -751,23 +916,26 @@ $html .= "
 
             $pdf->Output('F', $mergedPath);
 
-            
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'pdf_files',
-                'convert_into' => 'pdf',
-                'original_name' => implode(', ', $originalNames),
-                'converted_name' => $mergedName,
-                'original_doc' => '',
-                'converted_pdf' => $relativePath,
-            ]);
+            $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+            if (!is_null($userId)) {
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'pdf_files',
+                    'convert_into' => 'pdf',
+                    'original_name' => implode(', ', $originalNames),
+                    'converted_name' => $mergedName,
+                    'original_doc' => '',
+                    'converted_pdf' => $relativePath,
+                ]);
+            }
 
             // Create download token
             $token = Str::random(32);
             $fileUrl = asset('storage/' . $relativePath);
 
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
+                'converted_document_id' => $convertedDoc->id ?? null,
                 'token' => $token,
                 'files' => json_encode([$fileUrl]),
                 'expires_at' => now()->addMinutes(30),
@@ -791,7 +959,6 @@ $html .= "
         }
 
         $file = $request->file('pdf_file');
-        $userId = $request->input('user_id');
 
         if ($file->getClientOriginalExtension() !== 'pdf') {
             return response()->json(['error' => 'Only PDF files are supported'], 400);
@@ -825,21 +992,25 @@ $html .= "
                 $split->Output('F', $fullPath);
                 $splitUrls[] = asset('storage/' . $relativePath);
 
-                $convertedDoc = ConvertedDocuments::create([
-                    'user_id' => $userId,
-                    'file_type' => 'pdf_file',
-                    'convert_into' => 'split_pdf',
-                    'original_name' => $originalName,
-                    'converted_name' => $splitName,
-                    'original_doc' => '', // skipped storing original as in mergePdf
-                    'converted_pdf' => $relativePath,
-                ]);
+                $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'pdf_file',
+                        'convert_into' => 'split_pdf',
+                        'original_name' => $originalName,
+                        'converted_name' => $splitName,
+                        'original_doc' => '', // skipped storing original as in mergePdf
+                        'converted_pdf' => $relativePath,
+                    ]);
+                }
             }
 
             // Generate one token for all split pages
             $token = Str::random(32);
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id, // last one created
+                'converted_document_id' => $convertedDoc->id ?? null, // last one created
                 'token' => $token,
                 'files' => json_encode($splitUrls),
                 'expires_at' => now()->addMinutes(30),
@@ -864,7 +1035,6 @@ $html .= "
 
         $angle = $request->input('angle', 0);
         $file = $request->file('pdf_file');
-        $userId = $request->input('user_id');
 
         if ($file->getClientOriginalExtension() !== 'pdf') {
             return response()->json(['error' => 'Only PDF files are supported'], 400);
@@ -895,20 +1065,24 @@ $html .= "
 
             $pdf->Output('F', $outputPath);
 
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'pdf_file',
-                'convert_into' => 'rotated_pdf',
-                'original_name' => $originalName,
-                'converted_name' => $rotatedName,
-                'original_doc' => '', // consistent with mergePdf
-                'converted_pdf' => $relativePath,
-            ]);
+            $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
+
+            if (!is_null($userId)) {
+                $convertedDoc = ConvertedDocuments::create([
+                    'user_id' => $userId,
+                    'file_type' => 'pdf_file',
+                    'convert_into' => 'rotated_pdf',
+                    'original_name' => $originalName,
+                    'converted_name' => $rotatedName,
+                    'original_doc' => '', // consistent with mergePdf
+                    'converted_pdf' => $relativePath,
+                ]);
+            }
 
             $token = Str::random(32);
 
             DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
+                'converted_document_id' => $convertedDoc->id ?? null,
                 'token' => $token,
                 'files' => json_encode([asset('storage/' . $relativePath)]),
                 'expires_at' => now()->addMinutes(30),
@@ -928,138 +1102,142 @@ $html .= "
 
     public function watermarkPdf(Request $request)
     {
-        if (!$request->hasFile('pdf_file')) {
-            return response()->json(['error' => 'No file uploaded'], 400);
+        $files = $request->file('pdf_file');
+
+        if (!$files || !is_array($files)) {
+            return response()->json(['error' => 'No files uploaded'], 400);
         }
 
-        $file = $request->file('pdf_file');
-        $userId = $request->input('user_id');
         $rotate = floatval($request->input('rotation', 0));
         $watermarkText = $request->input('watermark_text', 'CONFIDENTIAL');
         $imageFile = $request->file('watermark_image');
         $type = $request->input('watermark_type', 'text');
         $positionKey = $request->input('watermark_position', 'center');
         $isMosaic = $request->boolean('mosaic', false);
-
-        if ($file->getClientOriginalExtension() !== 'pdf') {
-            return response()->json(['error' => 'Only PDF files are supported'], 400);
-        }
+        $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
 
         $outputDir = storage_path('app/public/converted');
         if (!file_exists($outputDir)) mkdir($outputDir, 0777, true);
 
-        $originalName = $file->getClientOriginalName();
-        $inputPath = $file->getRealPath();
+        $positionMap = [
+            'top-left' => [0.1, 0.1],
+            'top-center' => [0.5, 0.1],
+            'top-right' => [0.9, 0.1],
+            'middle-left' => [0.1, 0.5],
+            'center' => [0.5, 0.5],
+            'middle-right' => [0.9, 0.5],
+            'bottom-left' => [0.1, 0.9],
+            'bottom-center' => [0.5, 0.9],
+            'bottom-right' => [0.9, 0.9],
+        ];
 
-        $watermarkedName = 'watermarked_' . time() . '.pdf';
-        $relativePath = 'converted/' . $watermarkedName;
-        $outputPath = storage_path('app/public/' . $relativePath);
+        $pdfUrls = [];
+        $lastConvertedDocId = null;
 
-        try {
-            $pdf = new PdfWithRotation(); // Ensure this class supports Rotate and SetAlpha
-            $pageCount = $pdf->setSourceFile($inputPath);
+        foreach ($files as $file) {
+            if ($file->getClientOriginalExtension() !== 'pdf') continue;
 
-            $positionMap = [
-                'top-left' => [0.1, 0.1],
-                'top-center' => [0.5, 0.1],
-                'top-right' => [0.9, 0.1],
-                'middle-left' => [0.1, 0.5],
-                'center' => [0.5, 0.5],
-                'middle-right' => [0.9, 0.5],
-                'bottom-left' => [0.1, 0.9],
-                'bottom-center' => [0.5, 0.9],
-                'bottom-right' => [0.9, 0.9],
-            ];
+            $originalName = $file->getClientOriginalName();
+            $inputPath = $file->getRealPath();
 
-            $positionsToApply = $isMosaic ? array_values($positionMap) : [$positionMap[$positionKey] ?? [0.5, 0.5]];
+            $watermarkedName = 'watermarked_' . time() . '_' . uniqid() . '.pdf';
+            $relativePath = 'converted/' . $watermarkedName;
+            $outputPath = storage_path('app/public/' . $relativePath);
 
-            for ($i = 1; $i <= $pageCount; $i++) {
-                $templateId = $pdf->importPage($i);
-                $size = $pdf->getTemplateSize($templateId);
-                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-                $pdf->useTemplate($templateId);
+            try {
+                $pdf = new PdfWithRotation();
+                $pageCount = $pdf->setSourceFile($inputPath);
 
-                foreach ($positionsToApply as $relativePos) {
-                    $x = $size['width'] * $relativePos[0];
-                    $y = $size['height'] * $relativePos[1];
+                $positionsToApply = $isMosaic ? array_values($positionMap) : [$positionMap[$positionKey] ?? [0.5, 0.5]];
 
-                    if ($type === 'image' && $imageFile && $imageFile->isValid()) {
-                        $ext = $imageFile->getClientOriginalExtension();
-                        $tmpImagePath = storage_path('app/temp_watermark.' . $ext);
-                        copy($imageFile->getRealPath(), $tmpImagePath);
+                for ($i = 1; $i <= $pageCount; $i++) {
+                    $templateId = $pdf->importPage($i);
+                    $size = $pdf->getTemplateSize($templateId);
+                    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                    $pdf->useTemplate($templateId);
 
-                        $imgWidth = 30;
-                        $imgHeight = 30;
+                    foreach ($positionsToApply as $relativePos) {
+                        $x = $size['width'] * $relativePos[0];
+                        $y = $size['height'] * $relativePos[1];
 
-                        $x -= $imgWidth / 2;
-                        $y -= $imgHeight / 2;
+                        if ($type === 'image' && $imageFile && $imageFile->isValid()) {
+                            $ext = $imageFile->getClientOriginalExtension();
+                            $tmpImagePath = storage_path('app/temp_watermark.' . $ext);
+                            copy($imageFile->getRealPath(), $tmpImagePath);
 
-                        $x = max(0, min($x, $size['width'] - $imgWidth));
-                        $y = max(0, min($y, $size['height'] - $imgHeight));
+                            $imgWidth = 30;
+                            $imgHeight = 30;
+                            $x -= $imgWidth / 2;
+                            $y -= $imgHeight / 2;
+                            $x = max(0, min($x, $size['width'] - $imgWidth));
+                            $y = max(0, min($y, $size['height'] - $imgHeight));
 
-                        $pdf->Rotate($rotate, $x + $imgWidth / 2, $y + $imgHeight / 2);
-                        $pdf->Image($tmpImagePath, $x, $y, $imgWidth, $imgHeight);
-                        $pdf->Rotate(0);
+                            $pdf->Rotate($rotate, $x + $imgWidth / 2, $y + $imgHeight / 2);
+                            $pdf->Image($tmpImagePath, $x, $y, $imgWidth, $imgHeight);
+                            $pdf->Rotate(0);
 
-                        register_shutdown_function(fn() => @unlink($tmpImagePath));
-                    } else {
-                        $pdf->SetFont('Arial', 'I', 20);
-                        $pdf->SetTextColor(192, 192, 192);
+                            register_shutdown_function(fn() => @unlink($tmpImagePath));
+                        } else {
+                            $pdf->SetFont('Arial', 'I', 20);
+                            $pdf->SetTextColor(192, 192, 192);
+                            if (method_exists($pdf, 'SetAlpha')) $pdf->SetAlpha(0.3);
 
-                        if (method_exists($pdf, 'SetAlpha')) {
-                            $pdf->SetAlpha(0.3);
-                        }
+                            $textWidth = $pdf->GetStringWidth($watermarkText) + 10;
+                            $textHeight = 10;
+                            $x -= $textWidth / 2;
+                            $y -= $textHeight / 2;
+                            $x = max(0, min($x, $size['width'] - $textWidth));
+                            $y = max(0, min($y, $size['height'] - $textHeight));
 
-                        $textWidth = $pdf->GetStringWidth($watermarkText) + 10;
-                        $textHeight = 10;
+                            $pdf->SetXY($x, $y);
+                            $pdf->Rotate($rotate, $x + $textWidth / 2, $y + $textHeight / 2);
+                            $pdf->Cell($textWidth, $textHeight, $watermarkText, 0, 0, 'L');
+                            $pdf->Rotate(0);
 
-                        $x -= $textWidth / 2;
-                        $y -= $textHeight / 2;
-
-                        $x = max(0, min($x, $size['width'] - $textWidth));
-                        $y = max(0, min($y, $size['height'] - $textHeight));
-
-                        $pdf->SetXY($x, $y);
-                        $pdf->Rotate($rotate, $x + $textWidth / 2, $y + $textHeight / 2);
-                        $pdf->Cell($textWidth, $textHeight, $watermarkText, 0, 0, 'L');
-                        $pdf->Rotate(0);
-
-                        if (method_exists($pdf, 'SetAlpha')) {
-                            $pdf->SetAlpha(1);
+                            if (method_exists($pdf, 'SetAlpha')) $pdf->SetAlpha(1);
                         }
                     }
                 }
+
+                $pdf->Output('F', $outputPath);
+
+                if (!is_null($userId)) {
+                    $convertedDoc = ConvertedDocuments::create([
+                        'user_id' => $userId,
+                        'file_type' => 'pdf_file',
+                        'convert_into' => 'watermarked_pdf',
+                        'original_name' => $originalName,
+                        'converted_name' => $watermarkedName,
+                        'original_doc' => '',
+                        'converted_pdf' => $relativePath,
+                    ]);
+                    $lastConvertedDocId = $convertedDoc->id;
+                }
+
+                $pdfUrls[] = asset('storage/' . $relativePath);
+
+            } catch (\Exception $e) {
+                \Log::error("Watermarking failed for file {$originalName}: " . $e->getMessage());
             }
-
-            $pdf->Output('F', $outputPath);
-
-            $convertedDoc = ConvertedDocuments::create([
-                'user_id' => $userId,
-                'file_type' => 'pdf_file',
-                'convert_into' => 'watermarked_pdf',
-                'original_name' => $originalName,
-                'converted_name' => $watermarkedName,
-                'original_doc' => '',
-                'converted_pdf' => $relativePath,
-            ]);
-
-            $token = Str::random(32);
-
-            DownloadToken::create([
-                'converted_document_id' => $convertedDoc->id,
-                'token' => $token,
-                'files' => json_encode([asset('storage/' . $relativePath)]),
-                'expires_at' => now()->addMinutes(30),
-            ]);
-
-            return response()->json([
-                'token' => $token,
-                'url' => asset('storage/' . $relativePath),
-            ]);
-        } catch (\Exception $e) {
-            \Log::error("PDF watermarking failed: " . $e->getMessage());
-            return response()->json(['error' => 'PDF watermarking failed.'], 500);
         }
+
+        if (empty($pdfUrls)) {
+            return response()->json(['error' => 'All PDF watermarking failed.'], 500);
+        }
+
+        $token = Str::random(32);
+
+        DownloadToken::create([
+            'converted_document_id' => $lastConvertedDocId,
+            'token' => $token,
+            'files' => json_encode($pdfUrls),
+            'expires_at' => now()->addMinutes(30),
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'urls' => $pdfUrls,
+        ]);
     }
 
 
