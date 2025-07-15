@@ -43,12 +43,12 @@ class AuthController extends Controller
 
         Mail::to($user->email)->send(new SendOtpMail($otp));
 
-        // $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        $loginToken = Str::random(60);
-        $user->login_token = $loginToken;
-        $user->login_token_expires_at = now()->addMinutes(30);
-        $user->save();
+        // $loginToken = Str::random(60);
+        // $user->login_token = $loginToken;
+        // $user->login_token_expires_at = now()->addMinutes(30);
+        // $user->save();
 
 
         return response()->json(['message', 'Registered successfully']);
@@ -63,16 +63,16 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        // $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
 
-        $loginToken = Str::random(60);
-        $user->login_token = $loginToken;
-        $user->login_token_expires_at = now()->addMinutes(30);
-        $user->save();
+        // $loginToken = Str::random(60);
+        // $user->login_token = $loginToken;
+        // $user->login_token_expires_at = now()->addMinutes(30);
+        // $user->save();
 
         return response()->json([
-            'access_token' => $loginToken,
+            'access_token' => $token,
             'user' => $user,
             'role' => $user->getRoleNames()->first(),
         ]);
@@ -113,46 +113,69 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'OTP verified successfully.',
             'access_token' => $token,
-            'user' => $user,
-            'role' => $user->getRoleNames()->first(),
         ]);
     }
+
+    // public function currentUser(Request $request)
+    // {
+    //     $authorization = $request->header('Authorization');
+
+    //     // if (!$authorization || !str_starts_with($authorization, 'Bearer ')) {
+    //     //     return response()->json(['message' => 'Unauthenticated'], 401);
+    //     // }
+
+    //     $token = str_replace('Bearer ', '', $authorization);
+
+    //     $user = \App\Models\User::where('login_token', $token)
+    //         ->where('login_token_expires_at', '>', now())
+    //         ->first();
+
+    //     if (!$user) {
+    //         return response()->json(['message' => 'Invalid or expired token'], 401);
+    //     }
+
+    //     // Manually set the authenticated user if you want to use Auth::user()
+    //     auth()->setUser($user);
+
+    //     // Load related data
+    //     $user->load([
+    //         'paymentDetails' => function ($query) {
+    //             $query->select('id', 'user_id', 'payer_email', 'plan_type', 'plan_amount', 'transaction_id', 'transaction_status', 'payment_date', 'gateway')->latest()->limit(1);
+    //         }
+    //     ]);
+
+    //     return response()->json([
+    //         'user' => $user
+    //     ]);
+    // }
 
     public function currentUser(Request $request)
     {
-        $authorization = $request->header('Authorization');
-
-        if (!$authorization || !str_starts_with($authorization, 'Bearer ')) {
+        $user = $request->user(); // Sanctum will resolve this
+        if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $token = str_replace('Bearer ', '', $authorization);
-
-        $user = \App\Models\User::where('login_token', $token)
-            ->where('login_token_expires_at', '>', now())
-            ->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'Invalid or expired token'], 401);
-        }
-
-        // Manually set the authenticated user if you want to use Auth::user()
-        auth()->setUser($user);
-
-        // Load related data
         $user->load([
-            'convertedDocuments' => function ($query) {
-                $query->select('id', 'user_id', 'file_type', 'convert_into', 'original_name', 'converted_name', 'created_at');
-            },
             'paymentDetails' => function ($query) {
-                $query->select('id', 'user_id', 'payer_email', 'plan_type', 'plan_amount', 'transaction_id', 'transaction_status', 'payment_date', 'gateway')->latest()->limit(1);
+                $query->latest()->select(
+                    'id',
+                    'user_id',
+                    'payer_email',
+                    'plan_type',
+                    'plan_amount',
+                    'transaction_id',
+                    'transaction_status',
+                    'payment_date',
+                    'gateway'
+                )->limit(1);
             }
         ]);
 
-        return response()->json([
-            'user' => $user
-        ]);
+
+        return response()->json(['user' => $user]);
     }
+
 
 
 }

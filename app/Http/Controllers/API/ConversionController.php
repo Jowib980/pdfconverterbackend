@@ -462,81 +462,6 @@ class ConversionController extends Controller
         }
     }
 
-    // public function convertHtml(Request $request)
-    // {
-    //     if (!$request->hasFile('file')) {
-    //         return response()->json(['error' => 'No file uploaded'], 400);
-    //     }
-
-    //     $files = $request->file('file');
-    //     $userId = $request->user_id;
-
-    //     if (!is_array($files)) {
-    //         $files = [$files];
-    //     }
-
-    //     $pdfUrls = [];
-    //     $lastConvertedDocId = null;
-
-
-    //     try {
-
-    //         foreach ($files as $file) {
-    //             $extension = strtolower($file->getClientOriginalExtension());
-
-    //         if (!in_array($extension, ['htm', 'html'])) {
-    //             continue;
-    //         }
-
-    //         $htmlContent = file_get_contents($file->getPathname());
-
-    //         $uniqueId = Str::uuid();
-    //         $filename = "converted_{$uniqueId}.pdf";
-    //         $relativePath = "converted/{$filename}";
-    //         $pdfPath = storage_path("app/public/" . $relativePath);
-
-    //         \PDF::loadHTML($htmlContent)->save($pdfPath);
-
-    //         $convertedDoc = ConvertedDocuments::create([
-    //             'user_id' => $userId,
-    //             'file_type' => 'html_files',
-    //             'convert_into' => 'pdf',
-    //             'original_name' => $file->getClientOriginalName(),
-    //             'converted_name' => $filename,
-    //             'original_doc' => $file->store('originals', 'public'),
-    //             'converted_pdf' => $relativePath,
-    //         ]);
-
-
-    //             $lastConvertedDocId = $convertedDoc->id;
-    //             $pdfUrls[] = asset('storage/' . $relativePath);
-    //         }
-
-    //         if (empty($pdfUrls)) {
-    //             return response()->json(['error' => 'No valid .docx files found'], 400);
-    //         }
-
-
-    //         $token = Str::random(32);
-            
-    //         DownloadToken::create([
-    //             'converted_document_id' => $lastConvertedDocId,
-    //             'token' => $token,
-    //             'files' => json_encode($pdfUrls),
-    //             'expires_at' => now()->addMinutes(30),
-    //         ]);
-
-    //         return response()->json([
-    //             'urls' => $pdfUrls,
-    //             'token' => $token
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
-    //     }
-    // }
-
-
 
     public function convertHtml(Request $request)
     {
@@ -1111,6 +1036,16 @@ class ConversionController extends Controller
         $rotate = floatval($request->input('rotation', 0));
         $watermarkText = $request->input('watermark_text', 'CONFIDENTIAL');
         $imageFile = $request->file('watermark_image');
+        $imageFile = $request->file('watermark_image');
+        \Log::info('🧾 Uploaded image file:', [
+            'exists' => $request->hasFile('watermark_image'),
+            'file' => $imageFile,
+        ]);
+
+        if (!$imageFile || !$imageFile->isValid()) {
+            return response()->json(['error' => 'Invalid watermark image'], 422);
+        }
+
         $type = $request->input('watermark_type', 'text');
         $positionKey = $request->input('watermark_position', 'center');
         $isMosaic = $request->boolean('mosaic', false);
