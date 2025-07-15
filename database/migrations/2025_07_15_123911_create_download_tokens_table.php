@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        
         Schema::create('download_tokens', function (Blueprint $table) {
             $table->id();
             $table->foreignId('converted_document_id')
+                ->nullable()
                 ->constrained('converted_documents')
                 ->onDelete('cascade');
             $table->string('token')->unique();

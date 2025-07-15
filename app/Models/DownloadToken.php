@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ConvertedDocuments;
 
 class DownloadToken extends Model
 {
     //
-    protected $fillable = [
+
+     protected $fillable = [
         'converted_document_id',
         'token',
         'files',
