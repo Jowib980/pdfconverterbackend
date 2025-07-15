@@ -979,14 +979,45 @@ class ConversionController extends Controller
             $pdf = new PdfWithRotation();
             $pageCount = $pdf->setSourceFile($inputPath);
 
+            // for ($i = 1; $i <= $pageCount; $i++) {
+            //     $templateId = $pdf->importPage($i);
+            //     $size = $pdf->getTemplateSize($templateId);
+            //     $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            //     $pdf->Rotate($angle, $size['width'] / 2, $size['height'] / 2);
+            //     $pdf->useTemplate($templateId);
+            //     $pdf->Rotate(0);
+            // }
+
             for ($i = 1; $i <= $pageCount; $i++) {
                 $templateId = $pdf->importPage($i);
                 $size = $pdf->getTemplateSize($templateId);
-                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-                $pdf->Rotate($angle, $size['width'] / 2, $size['height'] / 2);
-                $pdf->useTemplate($templateId);
-                $pdf->Rotate(0);
+
+                if (in_array($angle, [90, 270])) {
+                    // Swap width and height for canvas
+                    $canvasWidth = $size['height'];
+                    $canvasHeight = $size['width'];
+                    $orientation = $canvasWidth > $canvasHeight ? 'L' : 'P';
+
+                    $pdf->AddPage($orientation, [$canvasWidth, $canvasHeight]);
+
+                    // Rotate around the center of the canvas
+                    $pdf->Rotate($angle, $canvasWidth / 2, $canvasHeight / 2);
+
+                    // Use the template with adjusted coordinates
+                    $pdf->useTemplate($templateId, 
+                        ($canvasWidth - $size['width']) / 2, 
+                        ($canvasHeight - $size['height']) / 2
+                    );
+                } else {
+                    // No rotation or 180 (just flip)
+                    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                    $pdf->Rotate($angle, $size['width'] / 2, $size['height'] / 2);
+                    $pdf->useTemplate($templateId);
+                }
+
+                $pdf->Rotate(0); // Reset rotation
             }
+
 
             $pdf->Output('F', $outputPath);
 
