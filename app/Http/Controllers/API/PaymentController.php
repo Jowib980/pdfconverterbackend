@@ -17,19 +17,19 @@ class PaymentController extends Controller
         $gateways = PaymentGateway::orderByDesc('created_at')->paginate(10);
 
         $envCredentials = [
-            'paypal' => [
-                'client_id' => env('PAYPAL_CLIENT_ID'),
-                'client_secret' => env('PAYPAL_SECRET_ID'),
-            ],
-            'razorpay' => [
-                'client_id' => env('RAZORPAY_KEY'),
-                'client_secret' => env('RAZORPAY_SECRET'),
-            ],
-            'google' => [
-                'client_id' => env('GOOGLE_CLIENT_ID'),
-                'client_secret' => null,
-            ],
-        ];
+                'paypal' => [
+                    'client_id' => config('services.paypal.client_id'),
+                    'client_secret' => config('services.paypal.client_secret'),
+                ],
+                'razorpay' => [
+                    'client_id' => config('services.razorpay.client_id'),
+                    'client_secret' => config('services.razorpay.client_secret'),
+                ],
+                'google' => [
+                    'client_id' => config('services.google.client_id'),
+                    'client_secret' => null,
+                ],
+            ];
 
         $updatedGateways = $gateways->getCollection()->map(function ($gateway) use ($envCredentials) {
             $key = strtolower($gateway->name);

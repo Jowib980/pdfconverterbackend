@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_SECRET_ID'),
+    ],
+    'razorpay' => [
+        'client_id' => env('RAZORPAY_KEY'),
+        'client_secret' => env('RAZORPAY_SECRET'),
+    ],
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+    ],
+
+
 ];

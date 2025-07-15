@@ -13,6 +13,19 @@ use App\Models\User;
 use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\ContactController;
 
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SendOtpMail;
+
+Route::get('/test-mail', function () {
+    try {
+        Mail::to('your@email.com')->send(new SendOtpMail(123456));
+        return 'Mail sent successfully!';
+    } catch (\Exception $e) {
+        return 'Mail error: ' . $e->getMessage();
+    }
+});
+
+
 Route::get('/', function () {
     return Auth::check() ? redirect('/dashboard') : redirect()->route('login');
 });
