@@ -244,7 +244,7 @@ class PaymentController extends Controller
 
     public function createRazorpayOrder(Request $request)
     {
-        $api = new \Razorpay\Api\Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+        $api = new \Razorpay\Api\Api(config('services.razorpay.client_id'), config('services.razorpay.client_secret'));
 
         $order = $api->order->create([
             'receipt' => Str::uuid(),
