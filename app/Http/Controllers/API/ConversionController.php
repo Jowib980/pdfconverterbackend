@@ -1073,10 +1073,7 @@ class ConversionController extends Controller
             'file' => $imageFile,
         ]);
 
-        if (!$imageFile || !$imageFile->isValid()) {
-            return response()->json(['error' => 'Invalid watermark image'], 422);
-        }
-
+        
         $type = $request->input('watermark_type', 'text');
         $positionKey = $request->input('watermark_position', 'center');
         $isMosaic = $request->boolean('mosaic', false);
