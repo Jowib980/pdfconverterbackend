@@ -567,7 +567,7 @@ class ConversionController extends Controller
                         'convert_into' => 'pdf',
                         'original_name' => $originalName,
                         'converted_name' => $filename,
-                        'original_doc' => null, // No file uploaded
+                        'original_doc' => $htmlUrl ?? null, // No file uploaded
                         'converted_pdf' => $relativePath,
                     ]);
 
