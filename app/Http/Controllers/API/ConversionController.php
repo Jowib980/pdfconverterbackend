@@ -232,13 +232,21 @@ class ConversionController extends Controller
                 $style = "
                   <style>
                     body { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.5; }
-                    img { max-width: 100%; height: auto; }
+                    img { max-width: 100%; height: 100%; }
                     table { width: 100%; border-collapse: collapse; }
                     td, th { border: 1px solid #ccc; padding: 4px; }
                   </style>
                 ";
 
-                $htmlContent = $style . $htmlContent;
+                
+                libxml_use_internal_errors(true);
+                $dom = new \DOMDocument();
+                $dom->loadHTML('<?xml encoding="utf-8" ?>' . $htmlContent);
+                $images = $dom->getElementsByTagName('img');
+                foreach ($images as $img) {
+                    $img->setAttribute('style', 'max-width: 100%; height: auto;');
+                }
+                $htmlContent = $style . $dom->saveHTML($dom->getElementsByTagName('body')->item(0));
 
                 \PDF::loadHTML($htmlContent)
                     ->setPaper('A4')
@@ -291,7 +299,7 @@ class ConversionController extends Controller
 
 
     // public function convertExcel(Request $request)
-    // {
+// {
     //     if (!$request->hasFile('file')) {
     //         return response()->json(['error' => 'No files uploaded'], 400);
     //     }
@@ -408,130 +416,6 @@ class ConversionController extends Controller
     // }
 
 
-    // public function convertExcel(Request $request)
-    // {
-    //     if (!$request->hasFile('file')) {
-    //         return response()->json(['error' => 'No files uploaded'], 400);
-    //     }
-
-    //     $files = $request->file('file');
-    //     if (!is_array($files)) {
-    //         $files = [$files];
-    //     }
-
-    //     $pdfUrls = [];
-    //     $lastConvertedDocId = null;
-
-    //     try {
-    //         foreach ($files as $file) {
-    //             $extension = strtolower($file->getClientOriginalExtension());
-
-    //             if (!in_array($extension, ['xls', 'xlsx'])) {
-    //                 continue; // Skip unsupported files
-    //             }
-
-    //             $spreadsheet = SpreadsheetIOFactory::load($file->getPathname());
-    //             $worksheet = $spreadsheet->getActiveSheet();
-    //             $highestRow = $worksheet->getHighestRow();
-    //             $highestColumn = $worksheet->getHighestColumn();
-    //             $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
-
-    //             $rowsPerPdf = 200;
-    //             $chunkCount = ceil(($highestRow - 1) / $rowsPerPdf); // -1 because row 1 is header
-
-    //             for ($chunk = 0; $chunk < $chunkCount; $chunk++) {
-    //                 $newSpreadsheet = new Spreadsheet();
-    //                 $newSheet = $newSpreadsheet->getActiveSheet();
-
-    //                 // Copy headers
-    //                 for ($col = 1; $col <= $highestColumnIndex; $col++) {
-    //                     $cellAddress = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
-    //                     $header = $worksheet->getCell($cellAddress)->getValue();
-    //                     $newSheet->setCellValue($cellAddress, $header);
-    //                 }
-
-    //                 // Determine row range for this chunk
-    //                 $startRow = $chunk * $rowsPerPdf + 2; // start from row 2 (after header)
-    //                 $endRow = min($startRow + $rowsPerPdf - 1, $highestRow);
-    //                 $currentTargetRow = 2;
-
-    //                 for ($sourceRow = $startRow; $sourceRow <= $endRow; $sourceRow++, $currentTargetRow++) {
-    //                     for ($col = 1; $col <= $highestColumnIndex; $col++) {
-    //                         $sourceCell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $sourceRow;
-    //                         $targetCell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . $currentTargetRow;
-    //                         $value = $worksheet->getCell($sourceCell)->getValue();
-    //                         $newSheet->setCellValue($targetCell, $value);
-    //                     }
-    //                 }
-
-    //                 // Convert to HTML
-    //                 ob_start();
-    //                 $writer = new HtmlWriter($newSpreadsheet);
-    //                 $writer->save('php://output');
-    //                 $htmlContent = ob_get_clean();
-
-    //                 $style = '
-    //                   <style>
-    //                     body { font-family: Arial, sans-serif; font-size: 12px; }
-    //                     table { width: 100%; border-collapse: collapse; }
-    //                     td, th { border: 1px solid #ccc; padding: 5px; word-break: break-word; font-size: 10px; }
-    //                     thead { display: table-header-group; }
-    //                     tbody tr { page-break-inside: avoid; }
-    //                   </style>
-    //                 ';
-    //                 $htmlContent = $style . $htmlContent;
-
-    //                 // Save to PDF
-    //                 $uniqueId = Str::uuid();
-    //                 $filename = "converted_{$uniqueId}_part{$chunk}.pdf";
-    //                 $relativePath = "converted/{$filename}";
-    //                 $pdfPath = storage_path("app/public/" . $relativePath);
-
-    //                 \PDF::loadHTML($htmlContent)->save($pdfPath);
-
-    //                 $userId = $request->filled('user_id') && is_numeric($request->user_id) ? (int) $request->user_id : null;
-
-    //                 if (!is_null($userId)) {
-    //                     $convertedDoc = ConvertedDocuments::create([
-    //                         'user_id' => $userId,
-    //                         'file_type' => 'excel_files',
-    //                         'convert_into' => 'pdf',
-    //                         'original_name' => $file->getClientOriginalName(),
-    //                         'converted_name' => $filename,
-    //                         'original_doc' => $file->store('originals', 'public'),
-    //                         'converted_pdf' => $relativePath,
-    //                     ]);
-
-    //                     $lastConvertedDocId = $convertedDoc->id;
-    //                 }
-
-    //                 $pdfUrls[] = asset('storage/' . $relativePath);
-    //             }
-    //         }
-
-    //         if (empty($pdfUrls)) {
-    //             return response()->json(['error' => 'No valid Excel files (.xls, .xlsx) found'], 400);
-    //         }
-
-    //         $token = Str::random(32);
-
-    //         DownloadToken::create([
-    //             'converted_document_id' => $lastConvertedDocId ?? null,
-    //             'token' => $token,
-    //             'files' => json_encode($pdfUrls),
-    //             'expires_at' => now()->addMinutes(30),
-    //         ]);
-
-    //         return response()->json([
-    //             'urls' => $pdfUrls,
-    //             'token' => $token
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json(['error' => 'Conversion failed: ' . $e->getMessage()], 500);
-    //     }
-    // }
-
 public function convertExcel(Request $request)
 {
     if (!$request->hasFile('file')) {
@@ -598,7 +482,7 @@ public function convertExcel(Request $request)
                 $style = '
                   <style>
                     body { font-family: Arial, sans-serif; font-size: 12px; }
-                    table { width: 100%; border-collapse: collapse; }
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; word-wrap: break-word; }
                     td, th { border: 1px solid #ccc; padding: 5px; word-break: break-word; font-size: 10px; }
                     thead { display: table-header-group; }
                     tbody tr { page-break-inside: avoid; }
